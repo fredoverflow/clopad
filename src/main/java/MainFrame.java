@@ -1,5 +1,7 @@
 import clojure.lang.Compiler;
 import clojure.lang.LazySeq;
+import clojure.lang.RT;
+import clojure.lang.Var;
 import freditor.FreditorUI;
 import freditor.LineNumbers;
 
@@ -8,8 +10,10 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.io.StringWriter;
 
 public class MainFrame extends JFrame {
     private Editor input;
@@ -21,7 +25,7 @@ public class MainFrame extends JFrame {
 
         input = new Editor();
         button = new JButton("evaluate");
-        output = new FreditorUI(new Flexer(), 80, 5);
+        output = new FreditorUI(new Flexer(), 80, 10);
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
@@ -42,6 +46,8 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluate(ActionEvent event) {
+        StringWriter console = new StringWriter();
+        Var.pushThreadBindings(RT.map(RT.OUT, console));
         try {
             input.requestFocusInWindow();
             String text = input.getText();
@@ -50,12 +56,15 @@ public class MainFrame extends JFrame {
             if (result instanceof LazySeq) {
                 result = ((LazySeq) result).seq();
             }
-            String string = result.toString();
-            output.loadFromString(string);
+            RT.print(result, console);
         } catch (Compiler.CompilerException ex) {
-            String message = ex.getCause().getMessage();
-            output.loadFromString(message);
+            console.append("" + ex.line).append(": ").append(ex.getCause().getMessage());
+        } catch (IOException impossible) {
+            throw new RuntimeException(impossible);
+        } finally {
+            Var.popThreadBindings();
         }
+        output.loadFromString(console.toString());
     }
 
     private void boringStuff() {

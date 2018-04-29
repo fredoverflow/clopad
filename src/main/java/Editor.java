@@ -11,7 +11,10 @@ public class Editor extends FreditorUI {
         try {
             loadFromFile(filename);
         } catch (IOException ex) {
-            loadFromString("; Clojure + Notepad = Clopad!\n(ns user)\n\n(defn square [x] (* x x))\n\n(map square (range 1 11))");
+            loadFromString("; Clojure + Notepad = Clopad!\n"
+                    + "(ns user (:require [clojure.repl :refer [doc]]))\n\n"
+                    + "(doc range)\n\n"
+                    + "(defn square [x] (* x x))\n(map square (range 1 11))");
         }
     }
 
