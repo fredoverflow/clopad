@@ -1,4 +1,6 @@
 public class Flexer extends freditor.Flexer {
+    public static final Flexer instance = new Flexer();
+
     public static final int END = 0;
     public static final int ERROR = -1;
 

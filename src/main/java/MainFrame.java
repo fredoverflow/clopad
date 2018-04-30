@@ -25,7 +25,7 @@ public class MainFrame extends JFrame {
 
         input = new Editor();
         button = new JButton("evaluate");
-        output = new FreditorUI(new Flexer(), 80, 10);
+        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 10);
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));

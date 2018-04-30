@@ -7,7 +7,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class Editor extends FreditorUI {
     public Editor() {
-        super(new Flexer(), 80, 25);
+        super(Flexer.instance, ClojureIndenter.instance, 80, 25);
         try {
             loadFromFile(filename);
         } catch (IOException ex) {
