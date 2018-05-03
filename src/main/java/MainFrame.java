@@ -1,7 +1,5 @@
+import clojure.lang.*;
 import clojure.lang.Compiler;
-import clojure.lang.LazySeq;
-import clojure.lang.RT;
-import clojure.lang.Var;
 import freditor.FreditorUI;
 import freditor.LineNumbers;
 
@@ -53,8 +51,10 @@ public class MainFrame extends JFrame {
             String text = input.getText();
             Reader reader = new StringReader(text);
             Object result = Compiler.load(reader, Editor.directory, "clopad.txt");
-            if (result instanceof LazySeq) {
-                result = ((LazySeq) result).seq();
+            if (result instanceof IPending) {
+                final int PENDING_LIMIT = 100;
+                IFn take = Var.find(Symbol.create("clojure.core", "take"));
+                result = take.invoke(PENDING_LIMIT, result);
             }
             RT.print(result, console);
         } catch (Compiler.CompilerException ex) {
@@ -63,8 +63,8 @@ public class MainFrame extends JFrame {
             throw new RuntimeException(impossible);
         } finally {
             Var.popThreadBindings();
+            output.loadFromString(console.toString());
         }
-        output.loadFromString(console.toString());
     }
 
     private void boringStuff() {
