@@ -44,6 +44,7 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluate(ActionEvent event) {
+        input.tryToSaveCode();
         StringWriter console = new StringWriter();
         Var.pushThreadBindings(RT.map(RT.OUT, console));
         try {
