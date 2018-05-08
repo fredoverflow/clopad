@@ -22,26 +22,20 @@ public class ClojureIndenter implements Indenter {
                 switch (state) {
                     case Flexer.OPENING_BRACE:
                     case Flexer.OPENING_BRACKET:
-                        indentation = column + correction + 1;
                         indentations.push(indentation);
+                        indentation = column + correction + 1;
                         break;
 
                     case Flexer.OPENING_PAREN:
-                        indentation = column + correction + 2;
                         indentations.push(indentation);
+                        indentation = column + correction + 2;
                         break;
 
                     case Flexer.CLOSING_BRACE:
                     case Flexer.CLOSING_BRACKET:
                     case Flexer.CLOSING_PAREN:
-                        indentation = 0;
-                        if (!indentations.isEmpty()) {
-                            indentations.pop();
-                            Integer top = indentations.peek();
-                            if (top != null) {
-                                indentation = top;
-                            }
-                        }
+                        Integer top = indentations.poll();
+                        indentation = (top != null) ? top : 0;
                         break;
                 }
             }
