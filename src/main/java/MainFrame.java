@@ -1,5 +1,5 @@
-import clojure.lang.*;
 import clojure.lang.Compiler;
+import clojure.lang.*;
 import freditor.FreditorUI;
 import freditor.LineNumbers;
 
@@ -59,7 +59,14 @@ public class MainFrame extends JFrame {
             }
             RT.print(result, console);
         } catch (Compiler.CompilerException ex) {
-            console.append("" + ex.line).append(": ").append(ex.getCause().getMessage());
+            console.append(ex.getCause().getMessage());
+            if (ex.line > 0) {
+                String message = ex.getMessage();
+                int colon = message.lastIndexOf(':');
+                int paren = message.lastIndexOf(')');
+                int column = Integer.parseInt(message.substring(colon + 1, paren));
+                input.setCursorTo(ex.line - 1, column - 1);
+            }
         } catch (IOException impossible) {
             throw new RuntimeException(impossible);
         } finally {
