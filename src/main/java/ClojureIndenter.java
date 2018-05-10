@@ -3,7 +3,7 @@ import freditor.Indenter;
 
 import java.util.ArrayDeque;
 
-public class ClojureIndenter implements Indenter {
+public class ClojureIndenter extends Indenter {
     public static final ClojureIndenter instance = new ClojureIndenter();
 
     @Override
