@@ -124,6 +124,20 @@ public class Flexer extends freditor.Flexer {
     }
 
     @Override
+    public boolean preventInsertion(int nextState) {
+        switch (nextState) {
+            case STRING_LITERAL_END:
+            case CLOSING_PAREN:
+            case CLOSING_BRACKET:
+            case CLOSING_BRACE:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    @Override
     protected int nextStateOrEnd(int currentState, char input) {
         switch (currentState) {
             default:
