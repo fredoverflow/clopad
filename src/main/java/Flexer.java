@@ -90,6 +90,40 @@ public class Flexer extends freditor.Flexer {
     }
 
     @Override
+    public String synthesizeOnInsert(int state, int nextState) {
+        switch (state) {
+            case STRING_LITERAL_BEGIN:
+                return allowsSynthesis(nextState) ? "\"" : "";
+
+            case OPENING_PAREN:
+                return allowsSynthesis(nextState) ? ")" : "";
+
+            case OPENING_BRACKET:
+                return allowsSynthesis(nextState) ? "]" : "";
+
+            case OPENING_BRACE:
+                return allowsSynthesis(nextState) ? "}" : "";
+        }
+        return "";
+    }
+
+    private boolean allowsSynthesis(int nextState) {
+        switch (nextState) {
+            case END:
+            case NEWLINE:
+            case FIRST_SPACE:
+            case COMMENT_FIRST:
+            case CLOSING_PAREN:
+            case CLOSING_BRACKET:
+            case CLOSING_BRACE:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    @Override
     protected int nextStateOrEnd(int currentState, char input) {
         switch (currentState) {
             default:
