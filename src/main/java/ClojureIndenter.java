@@ -14,10 +14,12 @@ public class ClojureIndenter extends Indenter {
         int indentation = 0;
         int i = 0;
         for (int row = 0; row < rows; ++row) {
-            int correction = indentation - text.leadingSpaces(i);
-            corrections[row] = correction; // TODO leading closers?
+            int column = text.leadingSpaces(i);
+            i += column;
+            int correction = indentation - column;
+            corrections[row] = correction;
             final int columns = text.lengthOfRow(row);
-            for (int column = 0; column < columns; ++column) {
+            for (; column < columns; ++column) {
                 int state = text.intAt(i++) >> 16;
                 switch (state) {
                     case Flexer.OPENING_BRACE:
