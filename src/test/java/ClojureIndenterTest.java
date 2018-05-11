@@ -24,6 +24,13 @@ public class ClojureIndenterTest {
         int[] actual = ClojureIndenter.instance.corrections(closing);
         int[] expected = {-1, -2};
         assertArrayEquals(expected, actual);
+    }
 
+    @Test
+    public void ignoreQuotedLeadingSpaces() {
+        CharZipper quoted = text(" \" \n    quoted leading spaces \"");
+        int[] actual = ClojureIndenter.instance.corrections(quoted);
+        int[] expected = {-1, 0};
+        assertArrayEquals(expected, actual);
     }
 }
