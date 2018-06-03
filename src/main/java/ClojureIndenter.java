@@ -1,16 +1,15 @@
-import freditor.CharZipper;
+import freditor.Freditor;
 import freditor.Indenter;
-
-import java.util.ArrayDeque;
+import freditor.ephemeral.IntStack;
 
 public class ClojureIndenter extends Indenter {
     public static final ClojureIndenter instance = new ClojureIndenter();
 
     @Override
-    public int[] corrections(CharZipper text) {
+    public int[] corrections(Freditor text) {
         final int rows = text.rows();
         int[] corrections = new int[rows];
-        ArrayDeque<Integer> indentations = new ArrayDeque<>();
+        IntStack indentations = new IntStack();
         int indentation = 0;
         int i = 0;
         for (int row = 0; row < rows; ++row) {
@@ -20,7 +19,7 @@ public class ClojureIndenter extends Indenter {
             corrections[row] = correction;
             final int columns = text.lengthOfRow(row);
             for (; column < columns; ++column) {
-                int state = text.intAt(i++) >> 16;
+                int state = text.stateAt(i++);
                 switch (state) {
                     case Flexer.OPENING_BRACE:
                     case Flexer.OPENING_BRACKET:
@@ -36,8 +35,7 @@ public class ClojureIndenter extends Indenter {
                     case Flexer.CLOSING_BRACE:
                     case Flexer.CLOSING_BRACKET:
                     case Flexer.CLOSING_PAREN:
-                        Integer top = indentations.poll();
-                        indentation = (top != null) ? top : 0;
+                        indentation = indentations.isEmpty() ? 0 : indentations.pop();
                         break;
                 }
             }

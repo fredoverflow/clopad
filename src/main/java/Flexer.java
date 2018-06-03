@@ -90,6 +90,20 @@ public class Flexer extends freditor.Flexer {
     }
 
     @Override
+    public boolean preventInsertion(int nextState) {
+        switch (nextState) {
+            case STRING_LITERAL_END:
+            case CLOSING_PAREN:
+            case CLOSING_BRACKET:
+            case CLOSING_BRACE:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    @Override
     public String synthesizeOnInsert(int state, int nextState) {
         switch (state) {
             case STRING_LITERAL_BEGIN:
@@ -103,8 +117,10 @@ public class Flexer extends freditor.Flexer {
 
             case OPENING_BRACE:
                 return allowsSynthesis(nextState) ? "}" : "";
+
+            default:
+                return "";
         }
-        return "";
     }
 
     private boolean allowsSynthesis(int nextState) {
@@ -113,20 +129,6 @@ public class Flexer extends freditor.Flexer {
             case NEWLINE:
             case FIRST_SPACE:
             case COMMENT_FIRST:
-            case CLOSING_PAREN:
-            case CLOSING_BRACKET:
-            case CLOSING_BRACE:
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    @Override
-    public boolean preventInsertion(int nextState) {
-        switch (nextState) {
-            case STRING_LITERAL_END:
             case CLOSING_PAREN:
             case CLOSING_BRACKET:
             case CLOSING_BRACE:
