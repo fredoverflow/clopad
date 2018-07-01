@@ -11,9 +11,8 @@ public class Editor extends FreditorUI {
         try {
             loadFromFile(filename);
         } catch (IOException ex) {
-            loadFromString("; Clojure + Notepad = Clopad!\n"
-                    + "(ns user (:require [clojure.repl :refer [doc]]))\n\n"
-                    + "(doc range)\n\n"
+            loadFromString(";; Right-click on symbol to see source code!\n"
+                    + "(ns user (:require [clojure.string :as string]))\n\n"
                     + "(defn square [x] (* x x))\n(map square (range 1 11))");
         }
     }

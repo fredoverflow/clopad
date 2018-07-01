@@ -22,6 +22,7 @@ public class MainFrame extends JFrame {
         super(Editor.filename);
 
         input = new Editor();
+        input.onRightClick = this::printSource;
         button = new JButton("evaluate");
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
 
@@ -54,8 +55,7 @@ public class MainFrame extends JFrame {
             Object result = Compiler.load(reader, Editor.directory, "clopad.txt");
             if (result instanceof IPending) {
                 final int PENDING_LIMIT = 100;
-                IFn take = Var.find(Symbol.create("clojure.core", "take"));
-                result = take.invoke(PENDING_LIMIT, result);
+                result = Clojure.take.invoke(PENDING_LIMIT, result);
             }
             RT.print(result, console);
         } catch (Compiler.CompilerException ex) {
@@ -69,6 +69,29 @@ public class MainFrame extends JFrame {
             }
         } catch (IOException impossible) {
             throw new RuntimeException(impossible);
+        } finally {
+            Var.popThreadBindings();
+            output.loadFromString(console.toString());
+        }
+    }
+
+    public void printSource(String lexeme) {
+        StringWriter console = new StringWriter();
+        Var.pushThreadBindings(RT.map(RT.OUT, console, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+        try {
+            String text = input.getText();
+            Reader reader = new StringReader(text);
+            LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
+            Object nsForm = LispReader.read(rdr, false, null, false, null);
+            Compiler.eval(nsForm, false);
+
+            Object symbol = Clojure.symbol.invoke(lexeme);
+            Object source = Clojure.sourceFn.invoke(symbol);
+            if (source != null) {
+                console.append(source.toString());
+            }
+        } catch (LispReader.ReaderException ex) {
+            console.append(ex.getCause().getMessage());
         } finally {
             Var.popThreadBindings();
             output.loadFromString(console.toString());
