@@ -128,6 +128,7 @@ public class Flexer extends freditor.Flexer {
             case END:
             case NEWLINE:
             case FIRST_SPACE:
+            case NEXT_SPACE:
             case COMMENT_FIRST:
             case CLOSING_PAREN:
             case CLOSING_BRACKET:
