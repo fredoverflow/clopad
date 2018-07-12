@@ -3,6 +3,7 @@ public class FlexerGenerator {
         new freditor.FlexerGenerator(-8, 9)
                 .withIdentifierCall("symbol(input)")
                 .generateTokens(
+                        "false", "nil", "true",
                         "(", ")", "[", "]", "{", "}"
                 );
     }
