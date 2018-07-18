@@ -17,6 +17,8 @@ public class MainFrame extends JFrame {
     private Editor input;
     private JButton button;
     private FreditorUI output;
+    private FreditorUI source;
+    private JTabbedPane tabs;
 
     public MainFrame() {
         super(Editor.filename);
@@ -26,7 +28,8 @@ public class MainFrame extends JFrame {
         button = new JButton("evaluate");
         button.addActionListener(this::evaluate);
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
-        output.onRightClick = this::printSource;
+        source = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 10);
+        source.onRightClick = this::printSource;
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
@@ -34,11 +37,14 @@ public class MainFrame extends JFrame {
         inputWithLineNumbers.add(input);
         input.setComponentToRepaint(inputWithLineNumbers);
 
-        JPanel down = new JPanel(new BorderLayout());
         JPanel buttons = new JPanel();
         buttons.add(button);
+        tabs = new JTabbedPane();
+        tabs.addTab("output", output);
+        tabs.addTab("source", source);
+        JPanel down = new JPanel(new BorderLayout());
         down.add(buttons, BorderLayout.NORTH);
-        down.add(output, BorderLayout.CENTER);
+        down.add(tabs, BorderLayout.CENTER);
 
         add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, inputWithLineNumbers, down));
 
@@ -73,6 +79,7 @@ public class MainFrame extends JFrame {
         } finally {
             Var.popThreadBindings();
             output.loadFromString(console.toString());
+            tabs.setSelectedComponent(output);
         }
     }
 
@@ -95,7 +102,8 @@ public class MainFrame extends JFrame {
             console.append(ex.getCause().getMessage());
         } finally {
             Var.popThreadBindings();
-            output.loadFromString(console.toString());
+            source.loadFromString(console.toString());
+            tabs.setSelectedComponent(source);
         }
     }
 
