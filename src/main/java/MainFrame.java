@@ -24,6 +24,7 @@ public class MainFrame extends JFrame {
         input = new Editor();
         input.onRightClick = this::printSource;
         button = new JButton("evaluate");
+        button.addActionListener(this::evaluate);
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
         output.onRightClick = this::printSource;
 
@@ -33,15 +34,14 @@ public class MainFrame extends JFrame {
         inputWithLineNumbers.add(input);
         input.setComponentToRepaint(inputWithLineNumbers);
 
-        add(inputWithLineNumbers, BorderLayout.CENTER);
         JPanel down = new JPanel(new BorderLayout());
         JPanel buttons = new JPanel();
         buttons.add(button);
         down.add(buttons, BorderLayout.NORTH);
         down.add(output, BorderLayout.CENTER);
-        add(down, BorderLayout.SOUTH);
 
-        button.addActionListener(this::evaluate);
+        add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, inputWithLineNumbers, down));
+
         boringStuff();
     }
 
