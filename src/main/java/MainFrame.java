@@ -25,6 +25,7 @@ public class MainFrame extends JFrame {
         input.onRightClick = this::printSource;
         button = new JButton("evaluate");
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
+        output.onRightClick = this::printSource;
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
