@@ -11,9 +11,11 @@ public class Editor extends FreditorUI {
         try {
             loadFromFile(filename);
         } catch (IOException ex) {
-            loadFromString(";; Right-click on symbol to see source code!\n"
+            loadFromString(";; F1  show source  (right-click)\n"
+                    + ";; F5  evaluate whole program\n"
+                    + ";; F12 evaluate form at cursor\n"
                     + "(ns user (:require [clojure.string :as string]))\n\n"
-                    + "(defn square [x] (* x x))\n(map square (range 1 11))");
+                    + "(defn square [x] (* x x))\n\n(->>\n  (range 1 11)\n  (map square )\n  (string/join \", \" ))");
         }
     }
 

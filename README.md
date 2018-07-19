@@ -1,4 +1,4 @@
-![clopad](https://i.imgur.com/nYlDmd5.png)
+![clopad](https://i.imgur.com/r2H34yf.png)
 
 ## Background
 
