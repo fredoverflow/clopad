@@ -4,10 +4,12 @@ import freditor.FreditorUI;
 import freditor.LineNumbers;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.*;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Comparator;
 
 public class MainFrame extends JFrame {
     private static final int PRINT_LENGTH = 100;
@@ -17,6 +19,10 @@ public class MainFrame extends JFrame {
     private FreditorUI output;
     private FreditorUI source;
     private JTabbedPane tabs;
+
+    private JComboBox<Namespace> namespaces;
+    private JList<Symbol> names;
+    private JTextField filter;
 
     public MainFrame() {
         super(Editor.filename);
@@ -31,14 +37,52 @@ public class MainFrame extends JFrame {
         inputWithLineNumbers.add(input);
         input.setComponentToRepaint(inputWithLineNumbers);
 
+        namespaces = new JComboBox<>();
+        names = new JList<>();
+        names.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        filter = new JTextField();
+
+        JPanel namespaceExplorer = new JPanel(new BorderLayout());
+        namespaceExplorer.add(namespaces, BorderLayout.NORTH);
+        namespaceExplorer.add(new JScrollPane(names), BorderLayout.CENTER);
+        namespaceExplorer.add(filter, BorderLayout.SOUTH);
+
+        JPanel up = new JPanel(new BorderLayout());
+        up.add(inputWithLineNumbers, BorderLayout.CENTER);
+        up.add(namespaceExplorer, BorderLayout.EAST);
+
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
         tabs.addTab("source", source);
 
-        add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, inputWithLineNumbers, tabs));
+        add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs));
 
         addListeners();
         boringStuff();
+    }
+
+    private void updateNamespaces() {
+        ISeq allNamespaces = Namespace.all();
+        if (RT.count(allNamespaces) != namespaces.getItemCount()) {
+            namespaces.removeAllItems();
+            ISeqSpliterator.<Namespace>stream(allNamespaces)
+                    .sorted(Comparator.comparing(Namespace::toString))
+                    .forEach(namespaces::addItem);
+        }
+    }
+
+    private void filterSymbols() {
+        Namespace namespace = (Namespace) namespaces.getSelectedItem();
+        if (namespace == null) return;
+
+        ISeq interns = RT.keys(Clojure.nsInterns.invoke(namespace.name));
+        Symbol[] symbols = ISeqSpliterator.<Symbol>stream(interns)
+                .filter(symbol -> symbol.getName().contains(filter.getText()))
+                .sorted(Comparator.comparing(Symbol::getName))
+                .toArray(Symbol[]::new);
+        names.setListData(symbols);
+
+        filter.setBackground(symbols.length > 0 || filter.getText().isEmpty() ? Color.WHITE : Color.RED);
     }
 
     private void addListeners() {
@@ -58,8 +102,28 @@ public class MainFrame extends JFrame {
                 }
             }
         });
+
         input.onRightClick = this::printSource;
         source.onRightClick = this::printSource;
+
+        namespaces.addItemListener(event -> filterSymbols());
+        updateNamespaces();
+        namespaces.setSelectedIndex(0);
+
+        names.addListSelectionListener(event -> {
+            if (event.getValueIsAdjusting()) return;
+
+            Object namespace = namespaces.getSelectedItem();
+            if (namespace == null) return;
+
+            Symbol unqualified = names.getSelectedValue();
+            if (unqualified == null) return;
+
+            Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
+            printSource(qualified);
+        });
+
+        filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
     private void evaluateFormAtCursor() {
@@ -72,6 +136,9 @@ public class MainFrame extends JFrame {
             console.append("\n\n");
             Object result = Compiler.eval(form, false);
             RT.print(result, console);
+            if (isNamespaceForm(form)) {
+                updateNamespaces();
+            }
         } catch (Exception ex) {
             appendCause(console, ex);
         } finally {
@@ -94,19 +161,16 @@ public class MainFrame extends JFrame {
             Object result = LispReader.read(rdr, false, EOF, false, null);
             if (result == EOF) break;
 
-            evaluateNamespace(form);
+            if (isNamespaceForm(form)) {
+                Compiler.eval(form, false);
+            }
             form = result;
         }
         return form;
     }
 
-    private void evaluateNamespace(Object form) {
-        if (form instanceof PersistentList) {
-            PersistentList list = (PersistentList) form;
-            if (list.first().equals(Clojure.ns)) {
-                Compiler.eval(form, false);
-            }
-        }
+    private boolean isNamespaceForm(Object form) {
+        return form instanceof PersistentList && ((PersistentList) form).first().equals(Clojure.ns);
     }
 
     private void appendCause(StringWriter console, Exception ex) {
@@ -142,18 +206,21 @@ public class MainFrame extends JFrame {
             Var.popThreadBindings();
             output.loadFromString(console.toString());
             tabs.setSelectedComponent(output);
+            updateNamespaces();
         }
     }
 
-    private void printSource(String lexeme) {
+    private void printSource(Object symbolOrLexeme) {
         StringWriter console = new StringWriter();
         Var.pushThreadBindings(RT.map(RT.OUT, console, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
             evaluateNamespaceFormsBeforeCursor();
 
-            Object symbol = Clojure.symbol.invoke(lexeme);
+            Object symbol = Clojure.symbol.invoke(symbolOrLexeme);
             Object source = Clojure.sourceFn.invoke(symbol);
-            console.append(String.valueOf(source));
+            if (source != null) {
+                console.append(source.toString());
+            }
         } catch (LispReader.ReaderException ex) {
             console.append(ex.getCause().getMessage());
         } catch (Exception ex) {
