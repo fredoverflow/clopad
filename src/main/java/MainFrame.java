@@ -6,14 +6,11 @@ import freditor.LineNumbers;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
+import java.io.*;
 import java.util.Comparator;
 
 public class MainFrame extends JFrame {
     private static final int PRINT_LENGTH = 100;
-    private static final Object EOF = new Object();
 
     private Editor input;
     private FreditorUI output;
@@ -152,21 +149,33 @@ public class MainFrame extends JFrame {
         String text = input.getText();
         Reader reader = new StringReader(text);
         LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
-        Object form = null;
 
         int row = 1 + input.row();
         int column = 1 + input.column();
-        int line;
-        while ((line = rdr.getLineNumber()) < row || line == row && rdr.getColumnNumber() < column) {
-            Object result = LispReader.read(rdr, false, EOF, false, null);
-            if (result == EOF) break;
+        for (; ; ) {
+            Object form = LispReader.read(rdr, false, null, false, null);
+            if (skipWhitespace(rdr) == -1) return form;
+
+            int line = rdr.getLineNumber();
+            if (line > row || line == row && rdr.getColumnNumber() > column) return form;
 
             if (isNamespaceForm(form)) {
                 Compiler.eval(form, false);
             }
-            form = result;
         }
-        return form;
+    }
+
+    private int skipWhitespace(PushbackReader rdr) {
+        int ch = -1;
+        try {
+            do {
+                ch = rdr.read();
+            } while (Character.isWhitespace(ch) || ch == ',');
+            rdr.unread(ch);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return ch;
     }
 
     private boolean isNamespaceForm(Object form) {
