@@ -4,14 +4,13 @@ import freditor.FreditorUI;
 import freditor.LineNumbers;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.Comparator;
 
 public class MainFrame extends JFrame {
-    private static final int PRINT_LENGTH = 100;
-
     private Editor input;
     private FreditorUI output;
     private FreditorUI source;
@@ -20,6 +19,8 @@ public class MainFrame extends JFrame {
     private JComboBox<Namespace> namespaces;
     private JList<Symbol> names;
     private JTextField filter;
+
+    private Console console;
 
     public MainFrame() {
         super(Editor.filename);
@@ -53,6 +54,7 @@ public class MainFrame extends JFrame {
         tabs.addTab("source", source);
 
         add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs));
+        console = new Console(tabs);
 
         addListeners();
         boringStuff();
@@ -105,44 +107,67 @@ public class MainFrame extends JFrame {
 
         namespaces.addItemListener(event -> filterSymbols());
         updateNamespaces();
-        namespaces.setSelectedIndex(0);
-
-        names.addListSelectionListener(event -> {
-            if (event.getValueIsAdjusting()) return;
-
-            Object namespace = namespaces.getSelectedItem();
-            if (namespace == null) return;
-
-            Symbol unqualified = names.getSelectedValue();
-            if (unqualified == null) return;
-
-            Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
-            printSource(qualified);
-        });
+        names.addListSelectionListener(this::printSource);
 
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
+    private void printSource(String lexeme) {
+        console.run(source, () -> {
+            evaluateNamespaceFormsBeforeCursor();
+            Object symbol = Clojure.symbol.invoke(lexeme);
+            console.append(Clojure.sourceFn.invoke(symbol));
+        });
+    }
+
+    private void printSource(ListSelectionEvent event) {
+        if (event.getValueIsAdjusting()) return;
+
+        Object namespace = namespaces.getSelectedItem();
+        if (namespace == null) return;
+
+        Symbol unqualified = names.getSelectedValue();
+        if (unqualified == null) return;
+
+        Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
+        console.run(source, () -> console.append(Clojure.sourceFn.invoke(qualified)));
+    }
+
+    private void evaluateWholeProgram() {
+        console.run(output, () -> {
+            try {
+                input.tryToSaveCode();
+                input.requestFocusInWindow();
+                String text = input.getText();
+                Reader reader = new StringReader(text);
+                Object result = Compiler.load(reader, Editor.directory, "clopad.txt");
+                console.print(result);
+                updateNamespaces();
+            } catch (Compiler.CompilerException ex) {
+                console.append(ex.getCause().getMessage());
+                if (ex.line > 0) {
+                    String message = ex.getMessage();
+                    int colon = message.lastIndexOf(':');
+                    int paren = message.lastIndexOf(')');
+                    int column = Integer.parseInt(message.substring(colon + 1, paren));
+                    input.setCursorTo(ex.line - 1, column - 1);
+                }
+            }
+        });
+    }
+
     private void evaluateFormAtCursor() {
-        input.tryToSaveCode();
-        StringWriter console = new StringWriter();
-        Var.pushThreadBindings(RT.map(RT.OUT, console, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
-        try {
+        console.run(output, () -> {
+            input.tryToSaveCode();
             Object form = evaluateNamespaceFormsBeforeCursor();
-            RT.print(form, console);
+            console.print(form);
             console.append("\n\n");
             Object result = Compiler.eval(form, false);
-            RT.print(result, console);
+            console.print(result);
             if (isNamespaceForm(form)) {
                 updateNamespaces();
             }
-        } catch (Exception ex) {
-            appendCause(console, ex);
-        } finally {
-            Var.popThreadBindings();
-            output.loadFromString(console.toString());
-            tabs.setSelectedComponent(output);
-        }
+        });
     }
 
     private Object evaluateNamespaceFormsBeforeCursor() {
@@ -161,6 +186,7 @@ public class MainFrame extends JFrame {
 
             if (isNamespaceForm(form)) {
                 Compiler.eval(form, false);
+                updateNamespaces();
             }
         }
     }
@@ -180,65 +206,6 @@ public class MainFrame extends JFrame {
 
     private boolean isNamespaceForm(Object form) {
         return form instanceof PersistentList && ((PersistentList) form).first().equals(Clojure.ns);
-    }
-
-    private void appendCause(StringWriter console, Exception ex) {
-        Throwable cause = ex.getCause();
-        if (cause == null) {
-            cause = ex;
-        }
-        console.append(cause.getMessage());
-    }
-
-    private void evaluateWholeProgram() {
-        input.tryToSaveCode();
-        StringWriter console = new StringWriter();
-        Var.pushThreadBindings(RT.map(RT.OUT, console, Clojure.printLength, PRINT_LENGTH));
-        try {
-            input.requestFocusInWindow();
-            String text = input.getText();
-            Reader reader = new StringReader(text);
-            Object result = Compiler.load(reader, Editor.directory, "clopad.txt");
-            RT.print(result, console);
-        } catch (Compiler.CompilerException ex) {
-            console.append(ex.getCause().getMessage());
-            if (ex.line > 0) {
-                String message = ex.getMessage();
-                int colon = message.lastIndexOf(':');
-                int paren = message.lastIndexOf(')');
-                int column = Integer.parseInt(message.substring(colon + 1, paren));
-                input.setCursorTo(ex.line - 1, column - 1);
-            }
-        } catch (Exception ex) {
-            appendCause(console, ex);
-        } finally {
-            Var.popThreadBindings();
-            output.loadFromString(console.toString());
-            tabs.setSelectedComponent(output);
-            updateNamespaces();
-        }
-    }
-
-    private void printSource(Object symbolOrLexeme) {
-        StringWriter console = new StringWriter();
-        Var.pushThreadBindings(RT.map(RT.OUT, console, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
-        try {
-            evaluateNamespaceFormsBeforeCursor();
-
-            Object symbol = Clojure.symbol.invoke(symbolOrLexeme);
-            Object source = Clojure.sourceFn.invoke(symbol);
-            if (source != null) {
-                console.append(source.toString());
-            }
-        } catch (LispReader.ReaderException ex) {
-            console.append(ex.getCause().getMessage());
-        } catch (Exception ex) {
-            appendCause(console, ex);
-        } finally {
-            Var.popThreadBindings();
-            source.loadFromString(console.toString());
-            tabs.setSelectedComponent(source);
-        }
     }
 
     private void boringStuff() {
