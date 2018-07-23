@@ -20,7 +20,7 @@ public class Console extends StringWriter {
         Var.pushThreadBindings(RT.map(RT.OUT, this, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
             body.run();
-        } catch (Exception ex) {
+        } catch (Throwable ex) {
             Throwable cause = ex.getCause();
             if (cause == null) {
                 cause = ex;
