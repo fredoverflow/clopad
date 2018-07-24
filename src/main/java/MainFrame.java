@@ -9,11 +9,13 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.function.Supplier;
 
 public class MainFrame extends JFrame {
     private Editor input;
     private FreditorUI output;
-    private FreditorUI source;
+    private HashMap<Symbol, FreditorUI_symbol> sources;
     private JTabbedPane tabs;
 
     private JComboBox<Namespace> namespaces;
@@ -27,7 +29,7 @@ public class MainFrame extends JFrame {
 
         input = new Editor();
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
-        source = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 10);
+        sources = new HashMap<>();
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
@@ -51,10 +53,9 @@ public class MainFrame extends JFrame {
 
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
-        tabs.addTab("source", source);
 
         add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs));
-        console = new Console(tabs);
+        console = new Console(tabs, output);
 
         addListeners();
         boringStuff();
@@ -90,11 +91,13 @@ public class MainFrame extends JFrame {
             public void keyPressed(KeyEvent event) {
                 switch (event.getKeyCode()) {
                     case KeyEvent.VK_F1:
-                        printSource(input.lexemeAtCursor());
+                        printSourceFromInput(input.lexemeAtCursor());
                         break;
+
                     case KeyEvent.VK_F5:
                         evaluateWholeProgram();
                         break;
+
                     case KeyEvent.VK_F12:
                         evaluateFormAtCursor();
                         break;
@@ -102,25 +105,74 @@ public class MainFrame extends JFrame {
             }
         });
 
-        input.onRightClick = this::printSource;
-        source.onRightClick = this::printSource;
+        input.onRightClick = this::printSourceFromInput;
+
+        tabs.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getButton() != MouseEvent.BUTTON1) {
+                    Component selectedComponent = tabs.getSelectedComponent();
+                    if (selectedComponent != output) {
+                        FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
+                        tabs.remove(selectedSource);
+                        sources.remove(selectedSource.symbol);
+                    }
+                }
+            }
+        });
 
         namespaces.addItemListener(event -> filterSymbols());
         updateNamespaces();
-        names.addListSelectionListener(this::printSource);
+        names.addListSelectionListener(this::printSourceFromExplorer);
 
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
-    private void printSource(String lexeme) {
-        console.run(source, () -> {
+    private void printSourceFromInput(String lexeme) {
+        console.run(() -> {
             evaluateNamespaceFormsBeforeCursor();
-            Object symbol = Clojure.symbol.invoke(lexeme);
-            console.append(Clojure.sourceFn.invoke(symbol));
+            printSource(Symbol.create(lexeme), MainFrame::inputNamespace);
         });
     }
 
-    private void printSource(ListSelectionEvent event) {
+    private static Namespace inputNamespace() {
+        return (Namespace) RT.CURRENT_NS.deref();
+    }
+
+    private void printSourceFromSource(String lexeme) {
+        console.run(() -> printSource(Symbol.create(lexeme), this::sourceNamespace));
+    }
+
+    private Namespace sourceNamespace() {
+        FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
+        return Namespace.find(Symbol.create(selected.symbol.getNamespace()));
+    }
+
+    private void printSource(Symbol symbol, Supplier<Namespace> namespaceSupplier) {
+        if (symbol.getNamespace() == null) {
+            Namespace namespace = namespaceSupplier.get();
+            Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
+            if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
+
+            symbol = Symbol.create(var.ns.toString(), var.sym.getName());
+        }
+        printSource(symbol);
+    }
+
+    private void printSource(Symbol qualified) {
+        Object source = Clojure.sourceFn.invoke(qualified);
+        if (source == null) throw new RuntimeException("No source available for symbol: " + qualified);
+
+        console.append(source);
+        console.target = sources.computeIfAbsent(qualified, symbol -> {
+            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 10, symbol);
+            ui.onRightClick = this::printSourceFromSource;
+            tabs.addTab(symbol.getName(), ui);
+            return ui;
+        });
+    }
+
+    private void printSourceFromExplorer(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
         Object namespace = namespaces.getSelectedItem();
@@ -129,12 +181,14 @@ public class MainFrame extends JFrame {
         Symbol unqualified = names.getSelectedValue();
         if (unqualified == null) return;
 
-        Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
-        console.run(source, () -> console.append(Clojure.sourceFn.invoke(qualified)));
+        console.run(() -> {
+            Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
+            printSource(qualified);
+        });
     }
 
     private void evaluateWholeProgram() {
-        console.run(output, () -> {
+        console.run(() -> {
             try {
                 input.tryToSaveCode();
                 input.requestFocusInWindow();
@@ -157,7 +211,7 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluateFormAtCursor() {
-        console.run(output, () -> {
+        console.run(() -> {
             input.tryToSaveCode();
             Object form = evaluateNamespaceFormsBeforeCursor();
             console.print(form);

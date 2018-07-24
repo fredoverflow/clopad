@@ -10,15 +10,19 @@ public class Console extends StringWriter {
     private static final int PRINT_LENGTH = 100;
 
     private final JTabbedPane tabs;
+    private final FreditorUI defaultTarget;
+    public FreditorUI target;
 
-    public Console(JTabbedPane tabs) {
+    public Console(JTabbedPane tabs, FreditorUI defaultTarget) {
         this.tabs = tabs;
+        this.defaultTarget = defaultTarget;
     }
 
-    public void run(FreditorUI target, Runnable body) {
+    public void run(Runnable body) {
         getBuffer().setLength(0);
         Var.pushThreadBindings(RT.map(RT.OUT, this, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
+            target = defaultTarget;
             body.run();
         } catch (Throwable ex) {
             Throwable cause = ex.getCause();

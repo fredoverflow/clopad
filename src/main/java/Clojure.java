@@ -8,7 +8,6 @@ public class Clojure {
 
     public static final IFn nsInterns;
     public static final IFn sourceFn;
-    public static final IFn symbol;
 
     static {
         IFn require = Var.find(Symbol.create("clojure.core", "require"));
@@ -19,6 +18,5 @@ public class Clojure {
 
         nsInterns = Var.find(Symbol.create("clojure.core", "ns-interns"));
         sourceFn = Var.find(Symbol.create("clojure.repl", "source-fn"));
-        symbol = Var.find(Symbol.create("clojure.core", "symbol"));
     }
 }
