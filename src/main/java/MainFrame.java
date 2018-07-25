@@ -10,7 +10,6 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.function.Supplier;
 
 public class MainFrame extends JFrame {
     private Editor input;
@@ -55,8 +54,8 @@ public class MainFrame extends JFrame {
         tabs.addTab("output", output);
 
         add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs));
-        console = new Console(tabs, output);
 
+        console = new Console(tabs, output);
         addListeners();
         boringStuff();
     }
@@ -131,40 +130,33 @@ public class MainFrame extends JFrame {
     private void printSourceFromInput(String lexeme) {
         console.run(() -> {
             evaluateNamespaceFormsBeforeCursor();
-            printSource(Symbol.create(lexeme), MainFrame::inputNamespace);
+            Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
+            printSource(namespace, Symbol.create(lexeme));
         });
     }
 
-    private static Namespace inputNamespace() {
-        return (Namespace) RT.CURRENT_NS.deref();
-    }
-
     private void printSourceFromSource(String lexeme) {
-        console.run(() -> printSource(Symbol.create(lexeme), this::sourceNamespace));
+        console.run(() -> {
+            FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
+            Namespace namespace = Namespace.find(Symbol.create(selected.symbol.getNamespace()));
+            printSource(namespace, Symbol.create(lexeme));
+        });
     }
 
-    private Namespace sourceNamespace() {
-        FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
-        return Namespace.find(Symbol.create(selected.symbol.getNamespace()));
+    private void printSource(Namespace namespace, Symbol symbol) {
+        Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
+        if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
+
+        Symbol resolved = Symbol.create(var.ns.toString(), var.sym.getName());
+        printSource(resolved);
     }
 
-    private void printSource(Symbol symbol, Supplier<Namespace> namespaceSupplier) {
-        if (symbol.getNamespace() == null) {
-            Namespace namespace = namespaceSupplier.get();
-            Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
-            if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
-
-            symbol = Symbol.create(var.ns.toString(), var.sym.getName());
-        }
-        printSource(symbol);
-    }
-
-    private void printSource(Symbol qualified) {
-        Object source = Clojure.sourceFn.invoke(qualified);
-        if (source == null) throw new RuntimeException("No source available for symbol: " + qualified);
+    private void printSource(Symbol resolved) {
+        Object source = Clojure.sourceFn.invoke(resolved);
+        if (source == null) throw new RuntimeException("No source available for symbol: " + resolved);
 
         console.append(source);
-        console.target = sources.computeIfAbsent(qualified, symbol -> {
+        console.target = sources.computeIfAbsent(resolved, symbol -> {
             FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 10, symbol);
             ui.onRightClick = this::printSourceFromSource;
             tabs.addTab(symbol.getName(), ui);
@@ -182,8 +174,8 @@ public class MainFrame extends JFrame {
         if (unqualified == null) return;
 
         console.run(() -> {
-            Symbol qualified = Symbol.create(namespace.toString(), unqualified.getName());
-            printSource(qualified);
+            Symbol resolved = Symbol.create(namespace.toString(), unqualified.getName());
+            printSource(resolved);
         });
     }
 
