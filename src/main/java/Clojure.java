@@ -1,8 +1,10 @@
 import clojure.lang.IFn;
+import clojure.lang.Keyword;
 import clojure.lang.Symbol;
 import clojure.lang.Var;
 
 public class Clojure {
+    public static final Keyword doc;
     public static final Symbol ns;
     public static final Var printLength;
 
@@ -13,6 +15,7 @@ public class Clojure {
         IFn require = Var.find(Symbol.create("clojure.core", "require"));
         require.invoke(Symbol.create("clojure.repl"));
 
+        doc = Keyword.intern("doc");
         ns = Symbol.create(null, "ns");
         printLength = Var.find(Symbol.create("clojure.core", "*print-length*"));
 

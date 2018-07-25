@@ -14,7 +14,7 @@ import java.util.HashMap;
 public class MainFrame extends JFrame {
     private Editor input;
     private FreditorUI output;
-    private HashMap<Symbol, FreditorUI_symbol> sources;
+    private HashMap<Symbol, FreditorUI_symbol> helps;
     private JTabbedPane tabs;
 
     private JComboBox<Namespace> namespaces;
@@ -28,7 +28,7 @@ public class MainFrame extends JFrame {
 
         input = new Editor();
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
-        sources = new HashMap<>();
+        helps = new HashMap<>();
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
@@ -90,7 +90,7 @@ public class MainFrame extends JFrame {
             public void keyPressed(KeyEvent event) {
                 switch (event.getKeyCode()) {
                     case KeyEvent.VK_F1:
-                        printSourceFromInput(input.lexemeAtCursor());
+                        printHelpFromInput(input.lexemeAtCursor());
                         break;
 
                     case KeyEvent.VK_F5:
@@ -104,7 +104,7 @@ public class MainFrame extends JFrame {
             }
         });
 
-        input.onRightClick = this::printSourceFromInput;
+        input.onRightClick = this::printHelpFromInput;
 
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -114,7 +114,7 @@ public class MainFrame extends JFrame {
                     if (selectedComponent != output) {
                         FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
                         tabs.remove(selectedSource);
-                        sources.remove(selectedSource.symbol);
+                        helps.remove(selectedSource.symbol);
                     }
                 }
             }
@@ -122,60 +122,66 @@ public class MainFrame extends JFrame {
 
         namespaces.addItemListener(event -> filterSymbols());
         updateNamespaces();
-        names.addListSelectionListener(this::printSourceFromExplorer);
+        names.addListSelectionListener(this::printHelpFromExplorer);
 
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
-    private void printSourceFromInput(String lexeme) {
+    private void printHelpFromInput(String lexeme) {
         console.run(() -> {
             evaluateNamespaceFormsBeforeCursor();
             Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
-            printSource(namespace, Symbol.create(lexeme));
+            printHelp(namespace, Symbol.create(lexeme));
         });
     }
 
-    private void printSourceFromSource(String lexeme) {
+    private void printHelpFromHelp(String lexeme) {
         console.run(() -> {
             FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
             Namespace namespace = Namespace.find(Symbol.create(selected.symbol.getNamespace()));
-            printSource(namespace, Symbol.create(lexeme));
+            printHelp(namespace, Symbol.create(lexeme));
         });
     }
 
-    private void printSource(Namespace namespace, Symbol symbol) {
-        Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
-        if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
-
-        Symbol resolved = Symbol.create(var.ns.toString(), var.sym.getName());
-        printSource(resolved);
-    }
-
-    private void printSource(Symbol resolved) {
-        Object source = Clojure.sourceFn.invoke(resolved);
-        if (source == null) throw new RuntimeException("No source available for symbol: " + resolved);
-
-        console.append(source);
-        console.target = sources.computeIfAbsent(resolved, symbol -> {
-            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 10, symbol);
-            ui.onRightClick = this::printSourceFromSource;
-            tabs.addTab(symbol.getName(), ui);
-            return ui;
-        });
-    }
-
-    private void printSourceFromExplorer(ListSelectionEvent event) {
+    private void printHelpFromExplorer(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
         Object namespace = namespaces.getSelectedItem();
         if (namespace == null) return;
 
-        Symbol unqualified = names.getSelectedValue();
-        if (unqualified == null) return;
+        Symbol symbol = names.getSelectedValue();
+        if (symbol == null) return;
 
-        console.run(() -> {
-            Symbol resolved = Symbol.create(namespace.toString(), unqualified.getName());
-            printSource(resolved);
+        console.run(() -> printHelp((Namespace) namespace, symbol));
+    }
+
+    private void printHelp(Namespace namespace, Symbol symbol) {
+        Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
+        if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
+
+        Symbol resolved = Symbol.create(var.ns.toString(), var.sym.getName());
+        printHelp(var, resolved);
+    }
+
+    private void printHelp(Var var, Symbol resolved) {
+        Object help = Clojure.sourceFn.invoke(resolved);
+        if (help == null) {
+            IPersistentMap meta = var.meta();
+            if (meta != null) {
+                help = meta.valAt(Clojure.doc);
+            }
+            if (help == null) throw new RuntimeException("No source or doc found for symbol: " + resolved);
+        }
+        printHelp(resolved, help);
+    }
+
+    private void printHelp(Symbol resolved, Object help) {
+        console.append(help);
+        console.target = helps.computeIfAbsent(resolved, symbol -> {
+            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 10, symbol);
+            ui.onRightClick = this::printHelpFromHelp;
+            tabs.addTab(symbol.getName(), ui);
+            return ui;
         });
     }
 

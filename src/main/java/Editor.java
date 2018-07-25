@@ -11,7 +11,7 @@ public class Editor extends FreditorUI {
         try {
             loadFromFile(filename);
         } catch (IOException ex) {
-            loadFromString(";; F1  show source  (right-click)\n"
+            loadFromString(";; F1 (right-click) show source or doc\n"
                     + ";; F5  evaluate whole program\n"
                     + ";; F12 evaluate form at cursor\n"
                     + "(ns user (:require [clojure.string :as string]))\n\n"
