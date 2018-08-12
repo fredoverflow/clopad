@@ -10,6 +10,8 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainFrame extends JFrame {
     private Editor input;
@@ -105,6 +107,7 @@ public class MainFrame extends JFrame {
         });
 
         input.onRightClick = this::printHelpFromInput;
+        output.onRightClick = this::setCursorToSourceLocation;
 
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -125,6 +128,16 @@ public class MainFrame extends JFrame {
         names.addListSelectionListener(this::printHelpFromExplorer);
 
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
+    }
+
+    private static final Pattern sourceLocation = Pattern.compile("clopad.txt:(\\d+)");
+
+    private void setCursorToSourceLocation(String lexeme) {
+        Matcher matcher = sourceLocation.matcher(lexeme);
+        if (matcher.matches()) {
+            int row = Integer.parseInt(matcher.group(1));
+            input.setCursorTo(row - 1, 0);
+        }
     }
 
     private void printHelpFromInput(String lexeme) {
@@ -196,7 +209,7 @@ public class MainFrame extends JFrame {
                 console.print(result);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
-                console.append(ex.getCause().getMessage());
+                ex.getCause().printStackTrace(new PrintWriter(console));
                 if (ex.line > 0) {
                     String message = ex.getMessage();
                     int colon = message.lastIndexOf(':');

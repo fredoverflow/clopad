@@ -4,6 +4,7 @@ import freditor.FreditorUI;
 
 import javax.swing.*;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Console extends StringWriter {
@@ -29,7 +30,7 @@ public class Console extends StringWriter {
             if (cause == null) {
                 cause = ex;
             }
-            append(cause.getMessage());
+            cause.printStackTrace(new PrintWriter(this));
         } finally {
             Var.popThreadBindings();
             target.loadFromString(toString());
