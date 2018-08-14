@@ -144,7 +144,7 @@ public class MainFrame extends JFrame {
         console.run(() -> {
             evaluateNamespaceFormsBeforeCursor();
             Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
-            printHelp(namespace, Symbol.create(lexeme));
+            printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
         });
     }
 
@@ -152,8 +152,17 @@ public class MainFrame extends JFrame {
         console.run(() -> {
             FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
             Namespace namespace = Namespace.find(Symbol.create(selected.symbol.getNamespace()));
-            printHelp(namespace, Symbol.create(lexeme));
+            printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
         });
+    }
+
+    private void printPotentiallySpecialHelp(Namespace namespace, Symbol symbol) {
+        String specialHelp = SpecialForm.help(symbol.getName());
+        if (specialHelp != null) {
+            printHelp(symbol, specialHelp);
+        } else {
+            printHelp(namespace, symbol);
+        }
     }
 
     private void printHelpFromExplorer(ListSelectionEvent event) {
