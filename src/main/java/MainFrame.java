@@ -157,7 +157,7 @@ public class MainFrame extends JFrame {
     }
 
     private void printPotentiallySpecialHelp(Namespace namespace, Symbol symbol) {
-        String specialHelp = SpecialForm.help(symbol.getName());
+        String specialHelp = SpecialForm.help(symbol.toString());
         if (specialHelp != null) {
             printHelp(symbol, specialHelp);
         } else {
