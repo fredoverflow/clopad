@@ -118,6 +118,7 @@ public class MainFrame extends JFrame {
                         FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
                         tabs.remove(selectedSource);
                         helps.remove(selectedSource.symbol);
+                        input.requestFocusInWindow();
                     }
                 }
             }
