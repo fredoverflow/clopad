@@ -114,12 +114,16 @@ public class MainFrame extends JFrame {
             public void mouseClicked(MouseEvent event) {
                 if (event.getButton() != MouseEvent.BUTTON1) {
                     Component selectedComponent = tabs.getSelectedComponent();
-                    if (selectedComponent != output) {
+                    if (selectedComponent == output) {
+                        tabs.removeAll();
+                        tabs.addTab("output", output);
+                        helps.clear();
+                    } else {
                         FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
                         tabs.remove(selectedSource);
                         helps.remove(selectedSource.symbol);
-                        input.requestFocusInWindow();
                     }
+                    input.requestFocusInWindow();
                 }
             }
         });
