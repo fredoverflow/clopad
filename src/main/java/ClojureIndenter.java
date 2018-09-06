@@ -7,6 +7,7 @@ public class ClojureIndenter extends Indenter {
 
     @Override
     public int[] corrections(Freditor text) {
+        final int len = text.length();
         final int rows = text.rows();
         int[] corrections = new int[rows];
         IntStack indentations = new IntStack();
@@ -30,6 +31,16 @@ public class ClojureIndenter extends Indenter {
                     case Flexer.OPENING_PAREN:
                         indentations.push(indentation);
                         indentation = column + correction + 2;
+
+                        if (i < len && text.charAt(i) == ':') {
+                            final int start = i;
+                            i = skipKeywordAndWhitespace(text, i);
+                            column += i - start;
+
+                            if (text.stateAt(i) != Flexer.NEWLINE) {
+                                indentation = column + 1 + correction;
+                            }
+                        }
                         break;
 
                     case Flexer.CLOSING_BRACE:
@@ -42,5 +53,15 @@ public class ClojureIndenter extends Indenter {
             ++i; // new line
         }
         return corrections;
+    }
+
+    private int skipKeywordAndWhitespace(Freditor text, int i) {
+        while (text.stateAt(++i) == Flexer.SYMBOL_NEXT) {
+        }
+        if (text.stateAt(i) == Flexer.FIRST_SPACE) {
+            while (text.stateAt(++i) == Flexer.NEXT_SPACE) {
+            }
+        }
+        return i;
     }
 }

@@ -33,4 +33,20 @@ public class ClojureIndenterTest {
         int[] expected = {-1, 0};
         assertArrayEquals(expected, actual);
     }
+
+    @Test
+    public void namespace() {
+        Freditor text = text("(ns user\n(:require [clojure.string :as string]\n[clojure.test :refer [deftest is are run-tests]]))");
+        int[] actual = ClojureIndenter.instance.corrections(text);
+        int[] expected = {0, 2, 12};
+        assertArrayEquals(expected, actual);
+    }
+
+    @Test
+    public void newLineAfterKeyword() {
+        Freditor text = text("(:count\nsession\n0)");
+        int[] actual = ClojureIndenter.instance.corrections(text);
+        int[] expected = {0, 2, 2};
+        assertArrayEquals(expected, actual);
+    }
 }
