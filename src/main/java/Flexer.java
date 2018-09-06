@@ -325,6 +325,7 @@ public class Flexer extends freditor.Flexer {
                     case 'D':
                     case 'E':
                     case 'F':
+                    case 'M':
                     case 'N':
                     case 'R':
                     case 'X':
@@ -335,7 +336,6 @@ public class Flexer extends freditor.Flexer {
                     case 'd':
                     case 'e':
                     case 'f':
-                    case 'n':
                     case 'r':
                     case 'x':
                         return NEXT_DIGIT;
