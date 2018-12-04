@@ -63,6 +63,16 @@ public class Flexer extends freditor.Flexer {
                 if (firstCharacter == ':')
                     return 0x990073;
 
+            case F:
+            case FA:
+            case FAL:
+            case FALS:
+            case N:
+            case NI:
+            case T:
+            case TR:
+            case TRU:
+
             case SIGN:
                 if (previousState == OPENING_PAREN)
                     return 0xcc55ca;
