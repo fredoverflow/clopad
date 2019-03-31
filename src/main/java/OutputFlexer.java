@@ -1,8 +1,10 @@
+import freditor.FlexerState;
+
 public class OutputFlexer extends Flexer {
     public static final OutputFlexer instance = new OutputFlexer();
 
     @Override
-    public int pickColorForLexeme(int previousState, char firstCharacter, int endState) {
-        return super.pickColorForLexeme(Flexer.END, firstCharacter, endState);
+    public int pickColorForLexeme(FlexerState previousState, FlexerState endState) {
+        return super.pickColorForLexeme(FlexerState.EMPTY, endState);
     }
 }

@@ -92,7 +92,7 @@ public class MainFrame extends JFrame {
             public void keyPressed(KeyEvent event) {
                 switch (event.getKeyCode()) {
                     case KeyEvent.VK_F1:
-                        printHelpFromInput(input.symbolNearCursor(Flexer.SYMBOL_FIRST));
+                        printHelpFromInput(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
                         break;
 
                     case KeyEvent.VK_F5:

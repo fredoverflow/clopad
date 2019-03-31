@@ -1,3 +1,4 @@
+import freditor.FlexerState;
 import freditor.Freditor;
 import freditor.Indenter;
 import freditor.ephemeral.IntStack;
@@ -20,34 +21,25 @@ public class ClojureIndenter extends Indenter {
             corrections[row] = correction;
             final int columns = text.lengthOfRow(row);
             for (; column < columns; ++column) {
-                int state = text.stateAt(i++);
-                switch (state) {
-                    case Flexer.OPENING_BRACE:
-                    case Flexer.OPENING_BRACKET:
-                        indentations.push(indentation);
-                        indentation = column + correction + 1;
-                        break;
+                FlexerState state = text.stateAt(i++);
+                if (state == Flexer.OPENING_BRACE || state == Flexer.OPENING_BRACKET) {
+                    indentations.push(indentation);
+                    indentation = column + correction + 1;
+                } else if (state == Flexer.OPENING_PAREN) {
+                    indentations.push(indentation);
+                    indentation = column + correction + 2;
 
-                    case Flexer.OPENING_PAREN:
-                        indentations.push(indentation);
-                        indentation = column + correction + 2;
+                    if (i < len && text.stateAt(i) == Flexer.KEYWORD_HEAD) {
+                        final int start = i;
+                        i = skipKeywordAndSpaces(text, i);
+                        column += i - start;
 
-                        if (i < len && text.charAt(i) == ':') {
-                            final int start = i;
-                            i = skipKeywordAndWhitespace(text, i);
-                            column += i - start;
-
-                            if (text.stateAt(i) != Flexer.NEWLINE) {
-                                indentation = column + 1 + correction;
-                            }
+                        if (text.stateAt(i) != Flexer.NEWLINE) {
+                            indentation = column + 1 + correction;
                         }
-                        break;
-
-                    case Flexer.CLOSING_BRACE:
-                    case Flexer.CLOSING_BRACKET:
-                    case Flexer.CLOSING_PAREN:
-                        indentation = indentations.isEmpty() ? 0 : indentations.pop();
-                        break;
+                    }
+                } else if (state == Flexer.CLOSING_BRACE || state == Flexer.CLOSING_BRACKET || state == Flexer.CLOSING_PAREN) {
+                    indentation = indentations.isEmpty() ? 0 : indentations.pop();
                 }
             }
             ++i; // new line
@@ -55,11 +47,11 @@ public class ClojureIndenter extends Indenter {
         return corrections;
     }
 
-    private int skipKeywordAndWhitespace(Freditor text, int i) {
-        while (text.stateAt(++i) == Flexer.SYMBOL_NEXT) {
+    private int skipKeywordAndSpaces(Freditor text, int i) {
+        while (text.stateAt(++i) == Flexer.KEYWORD_TAIL) {
         }
-        if (text.stateAt(i) == Flexer.FIRST_SPACE) {
-            while (text.stateAt(++i) == Flexer.NEXT_SPACE) {
+        if (text.stateAt(i) == Flexer.SPACE_HEAD) {
+            while (text.stateAt(++i) == Flexer.SPACE_TAIL) {
             }
         }
         return i;
