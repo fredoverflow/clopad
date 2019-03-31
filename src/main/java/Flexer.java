@@ -73,11 +73,11 @@ public class Flexer extends freditor.Flexer {
             .put(COMMENT_HEAD, COMMENT_TAIL, 0x999988)
             .put(STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a)
             .put(NUMBER_HEAD, NUMBER_TAIL, 0x143dfb)
-            .tup(0x143dfb, START::read, "false", "nil", "true")
+            .put(START.read("false", "nil", "true"), 0x143dfb)
             .put(KEYWORD_HEAD, KEYWORD_TAIL, 0x990073);
 
     private static final ChampMap<FlexerState, Integer> afterOpeningParen = lexemeColors
-            .tup(0xcc55ca, START::read, "a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru");
+            .put(START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0xcc55ca);
 
     @Override
     public boolean preventInsertion(FlexerState nextState) {
