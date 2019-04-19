@@ -28,10 +28,14 @@ public class Flexer extends freditor.Flexer {
     private static final FlexerState NUMBER_TAIL = new FlexerState(".9AFMMNNRRXXafrrxx", THIS);
     private static final FlexerState NUMBER_HEAD = NUMBER_TAIL.head();
 
-    private static final FlexerState SIGN = new FlexerState("09", NUMBER_TAIL).head();
-
     static final FlexerState SYMBOL_TAIL = new FlexerState("!!#'*+-:<?AZ__az||", THIS);
     static final FlexerState SYMBOL_HEAD = SYMBOL_TAIL.head();
+
+    private static final FlexerState SIGN = new FlexerStateBuilder()
+            .set("09", NUMBER_TAIL)
+            .set("!!#'*+-:<?AZ__az||", SYMBOL_TAIL)
+            .build()
+            .head();
 
     static final FlexerState KEYWORD_TAIL = new FlexerState("!!#'*+-:<?AZ__az||", THIS);
     static final FlexerState KEYWORD_HEAD = KEYWORD_TAIL.head();
@@ -50,9 +54,9 @@ public class Flexer extends freditor.Flexer {
             .set('\\', CHAR_CONSTANT_HEAD)
             .set('\"', STRING_LITERAL_HEAD)
             .set("09", NUMBER_HEAD)
+            .set("!!$&*+./<?AZ__az||", SYMBOL_HEAD)
             .set('+', SIGN)
             .set('-', SIGN)
-            .set("!!$&*+./<?AZ__az||", SYMBOL_HEAD)
             .set(':', KEYWORD_HEAD)
             .build()
             .verbatim(SYMBOL_TAIL, "false", "nil", "true")
