@@ -32,8 +32,8 @@ public class Flexer extends freditor.Flexer {
     static final FlexerState SYMBOL_HEAD = SYMBOL_TAIL.head();
 
     private static final FlexerState SIGN = new FlexerStateBuilder()
-            .set("09", NUMBER_TAIL)
             .set("!!#'*+-:<?AZ__az||", SYMBOL_TAIL)
+            .set("09", NUMBER_TAIL)
             .build()
             .head();
 
@@ -53,8 +53,8 @@ public class Flexer extends freditor.Flexer {
             .set(';', COMMENT_HEAD)
             .set('\\', CHAR_CONSTANT_HEAD)
             .set('\"', STRING_LITERAL_HEAD)
+            .set("!!#'*+-:<?AZ__az||", SYMBOL_HEAD)
             .set("09", NUMBER_HEAD)
-            .set("!!$&*+./<?AZ__az||", SYMBOL_HEAD)
             .set('+', SIGN)
             .set('-', SIGN)
             .set(':', KEYWORD_HEAD)
