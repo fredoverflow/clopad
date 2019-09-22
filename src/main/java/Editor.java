@@ -2,10 +2,14 @@ import freditor.FreditorUI;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 public class Editor extends FreditorUI {
+    public static final String directory = System.getProperty("user.home") + File.separator + "clopad" + File.separator;
+    public static final String filename = directory + "!clopad.txt";
+
     public Editor() {
         super(Flexer.instance, ClojureIndenter.instance, 80, 25);
         try {
@@ -20,11 +24,6 @@ public class Editor extends FreditorUI {
         }
     }
 
-    public static final String directory = System.getProperty("user.home") + "/clopad";
-    public static final String filenamePrefix = directory + "/clopad";
-    public static final String filenameSuffix = ".txt";
-    public static final String filename = filenamePrefix + filenameSuffix;
-
     public void tryToSaveCode() {
         createDirectory();
         tryToSaveCodeAs(filename);
@@ -32,8 +31,9 @@ public class Editor extends FreditorUI {
     }
 
     private void createDirectory() {
-        if (new File(directory).mkdir()) {
-            System.out.println("created directory " + directory);
+        File dir = new File(directory);
+        if (dir.mkdir()) {
+            System.out.println("created directory " + dir);
         }
     }
 
@@ -41,21 +41,22 @@ public class Editor extends FreditorUI {
         try {
             System.out.println("saving code as " + pathname);
             saveToFile(pathname);
-        } catch (Throwable ex) {
+        } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
     private String backupFilename() {
         try {
-            byte[] hash = MessageDigest.getInstance("SHA").digest(getText().getBytes());
-            StringBuilder sb = new StringBuilder(filenamePrefix);
-            sb.append('_');
-            for (byte b : hash) {
-                sb.append("0123456789abcdef".charAt((b >>> 4) & 15));
-                sb.append("0123456789abcdef".charAt(b & 15));
+            MessageDigest sha1 = MessageDigest.getInstance("SHA");
+            byte[] text = getText().getBytes(StandardCharsets.ISO_8859_1);
+            byte[] hash = sha1.digest(text);
+            StringBuilder builder = new StringBuilder(directory);
+            for (byte x : hash) {
+                builder.append("0123456789abcdef".charAt((x >>> 4) & 15));
+                builder.append("0123456789abcdef".charAt(x & 15));
             }
-            return sb.append(filenameSuffix).toString();
+            return builder.append(".txt").toString();
         } catch (NoSuchAlgorithmException impossible) {
             throw new RuntimeException(impossible);
         }
