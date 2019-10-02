@@ -26,11 +26,11 @@ public class MainFrame extends JFrame {
     private Console console;
 
     public MainFrame() {
-        super(Editor.filename);
-
         input = new Editor();
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
         helps = new HashMap<>();
+
+        setTitle(input.autosaver.pathname);
 
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
@@ -60,6 +60,8 @@ public class MainFrame extends JFrame {
         console = new Console(tabs, output);
         addListeners();
         boringStuff();
+
+        sourceLocation = Pattern.compile(input.autosaver.filename + ":(\\d+)");
     }
 
     private void updateNamespaces() {
@@ -135,7 +137,7 @@ public class MainFrame extends JFrame {
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
-    private static final Pattern sourceLocation = Pattern.compile("clopad.txt:(\\d+)");
+    private final Pattern sourceLocation;
 
     private void setCursorToSourceLocation(String lexeme) {
         Matcher matcher = sourceLocation.matcher(lexeme);
@@ -215,11 +217,11 @@ public class MainFrame extends JFrame {
     private void evaluateWholeProgram() {
         console.run(() -> {
             try {
-                input.tryToSaveCode();
+                input.autosaver.save();
                 input.requestFocusInWindow();
                 String text = input.getText();
                 Reader reader = new StringReader(text);
-                Object result = Compiler.load(reader, Editor.directory, "clopad.txt");
+                Object result = Compiler.load(reader, input.autosaver.directory, input.autosaver.filename);
                 console.print(result);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
@@ -237,7 +239,7 @@ public class MainFrame extends JFrame {
 
     private void evaluateFormAtCursor() {
         console.run(() -> {
-            input.tryToSaveCode();
+            input.autosaver.save();
             Object form = evaluateNamespaceFormsBeforeCursor();
             console.print(form);
             console.append("\n\n");
@@ -291,8 +293,8 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
-            public void windowClosing(WindowEvent e) {
-                input.tryToSaveCode();
+            public void windowClosing(WindowEvent event) {
+                input.autosaver.save();
             }
         });
         pack();
