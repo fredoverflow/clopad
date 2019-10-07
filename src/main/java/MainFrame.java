@@ -1,6 +1,7 @@
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import freditor.FreditorUI;
+import freditor.Front;
 import freditor.LineNumbers;
 
 import javax.swing.*;
@@ -39,9 +40,14 @@ public class MainFrame extends JFrame {
         input.setComponentToRepaint(inputWithLineNumbers);
 
         namespaces = new JComboBox<>();
+        namespaces.setFont(Front.sansSerif);
+
         names = new JList<>();
+        names.setFont(Front.sansSerif);
         names.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
         filter = new JTextField();
+        filter.setFont(Front.sansSerif);
 
         JPanel namespaceExplorer = new JPanel(new BorderLayout());
         namespaceExplorer.add(namespaces, BorderLayout.NORTH);
