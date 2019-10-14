@@ -58,6 +58,19 @@ public class MainFrame extends JFrame {
         up.add(inputWithLineNumbers, BorderLayout.CENTER);
         up.add(namespaceExplorer, BorderLayout.EAST);
 
+        filter.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent event) {
+                if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    if (filter.getText().isEmpty()) {
+                        up.remove(namespaceExplorer);
+                        up.revalidate();
+                    }
+                    input.requestFocusInWindow();
+                }
+            }
+        });
+
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
 
