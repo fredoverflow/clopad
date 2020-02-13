@@ -74,7 +74,9 @@ public class MainFrame extends JFrame {
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
 
-        add(new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs));
+        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs);
+        split.setResizeWeight(1.0);
+        add(split);
 
         console = new Console(tabs, output);
         addListeners();
