@@ -28,7 +28,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         input = new Editor();
-        output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 10);
+        output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 8);
         helps = new HashMap<>();
 
         setTitle(input.autosaver.pathname);
@@ -228,7 +228,7 @@ public class MainFrame extends JFrame {
     private void printHelp(Symbol resolved, Object help) {
         console.append(help);
         console.target = helps.computeIfAbsent(resolved, symbol -> {
-            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 10, symbol);
+            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 8, symbol);
             ui.onRightClick = this::printHelpFromHelp;
             tabs.addTab(symbol.getName(), ui);
             return ui;
