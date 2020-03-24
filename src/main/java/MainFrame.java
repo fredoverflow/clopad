@@ -14,6 +14,9 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.reflect.Modifier.isPublic;
+import static java.lang.reflect.Modifier.isStatic;
+
 public class MainFrame extends JFrame {
     private Editor input;
     private FreditorUI output;
@@ -206,11 +209,26 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelp(Namespace namespace, Symbol symbol) {
-        Var var = (Var) Compiler.maybeResolveIn(namespace, symbol);
-        if (var == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
+        Object obj = Compiler.maybeResolveIn(namespace, symbol);
+        if (obj == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
 
-        Symbol resolved = Symbol.create(var.ns.toString(), var.sym.getName());
-        printHelp(var, resolved);
+        if (obj instanceof Var) {
+            Var var = (Var) obj;
+            Symbol resolved = Symbol.create(var.ns.toString(), var.sym.getName());
+            printHelp(var, resolved);
+        } else if (obj instanceof Class<?>) {
+            Class<?> clazz = (Class<?>) obj;
+            String methods = Java.sortedMethods(clazz, mod -> isPublic(mod) && !isStatic(mod), "\n");
+            String staticFields = Java.sortedFields(clazz, mod -> isPublic(mod) && isStatic(mod), "\n");
+            String staticMethods = Java.sortedMethods(clazz, mod -> isPublic(mod) && isStatic(mod), "");
+            if (staticFields.isEmpty() && staticMethods.isEmpty()) {
+                printHelp(symbol, methods);
+            } else {
+                printHelp(symbol, methods + "======== static members ========\n\n" + staticFields + staticMethods);
+            }
+        } else {
+            console.printWriter.println(obj);
+        }
     }
 
     private void printHelp(Var var, Symbol resolved) {
