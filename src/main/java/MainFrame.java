@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class MainFrame extends JFrame {
     private Editor input;
     private FreditorUI output;
-    private HashMap<Symbol, FreditorUI_symbol> helps;
+    private HashMap<Symbol, FreditorUI_symbol> infos;
     private JTabbedPane tabs;
 
     private JComboBox<Namespace> namespaces;
@@ -29,7 +29,7 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         input = new Editor();
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 8);
-        helps = new HashMap<>();
+        infos = new HashMap<>();
 
         setTitle(input.autosaver.pathname);
 
@@ -140,11 +140,11 @@ public class MainFrame extends JFrame {
                     if (selectedComponent == output) {
                         tabs.removeAll();
                         tabs.addTab("output", output);
-                        helps.clear();
+                        infos.clear();
                     } else {
                         FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
                         tabs.remove(selectedSource);
-                        helps.remove(selectedSource.symbol);
+                        infos.remove(selectedSource.symbol);
                     }
                     input.requestFocusInWindow();
                 }
@@ -177,8 +177,8 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelpFromHelp(String lexeme) {
+        FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
         console.run(() -> {
-            FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
             Namespace namespace = Namespace.find(Symbol.create(selected.symbol.getNamespace()));
             printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
         });
@@ -226,13 +226,16 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelp(Symbol resolved, Object help) {
-        console.append(help);
-        console.target = helps.computeIfAbsent(resolved, symbol -> {
-            FreditorUI_symbol ui = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 8, symbol);
-            ui.onRightClick = this::printHelpFromHelp;
-            tabs.addTab(symbol.getName(), ui);
-            return ui;
-        });
+        FreditorUI_symbol info = infos.computeIfAbsent(resolved, this::newInfo);
+        info.loadFromString(help.toString());
+        tabs.setSelectedComponent(info);
+    }
+
+    private FreditorUI_symbol newInfo(Symbol symbol) {
+        FreditorUI_symbol info = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 8, symbol);
+        info.onRightClick = this::printHelpFromHelp;
+        tabs.addTab(symbol.getName(), info);
+        return info;
     }
 
     private void evaluateWholeProgram() {
@@ -246,7 +249,7 @@ public class MainFrame extends JFrame {
                 console.print(result);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
-                ex.getCause().printStackTrace(new PrintWriter(console));
+                ex.getCause().printStackTrace(console.printWriter);
                 if (ex.line > 0) {
                     String message = ex.getMessage();
                     int colon = message.lastIndexOf(':');

@@ -5,48 +5,45 @@ import freditor.FreditorUI;
 import javax.swing.*;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.io.StringWriter;
 
-public class Console extends StringWriter {
+public class Console {
     private static final int PRINT_LENGTH = 100;
 
     private final JTabbedPane tabs;
-    private final FreditorUI defaultTarget;
-    public FreditorUI target;
+    private final FreditorUI output;
+    public final PrintWriter printWriter;
+    private final Object threadBindingFrame;
 
-    public Console(JTabbedPane tabs, FreditorUI defaultTarget) {
+    public Console(JTabbedPane tabs, FreditorUI output) {
         this.tabs = tabs;
-        this.defaultTarget = defaultTarget;
+        this.output = output;
+        printWriter = new PrintWriter(new FreditorWriter(output));
+        threadBindingFrame = Var.getThreadBindingFrame();
     }
 
     public void run(Runnable body) {
-        getBuffer().setLength(0);
-        Var.pushThreadBindings(RT.map(RT.OUT, this, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+        Var.resetThreadBindingFrame(threadBindingFrame);
+        Var.pushThreadBindings(RT.map(RT.OUT, printWriter, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+        output.loadFromString("");
+        tabs.setSelectedComponent(output);
         try {
-            target = defaultTarget;
             body.run();
         } catch (Throwable ex) {
             Throwable cause = ex.getCause();
             if (cause == null) {
                 cause = ex;
             }
-            cause.printStackTrace(new PrintWriter(this));
-        } finally {
-            Var.popThreadBindings();
-            target.loadFromString(toString());
-            tabs.setSelectedComponent(target);
+            cause.printStackTrace(printWriter);
         }
     }
 
-    public void append(Object obj) {
-        if (obj != null) {
-            append(obj.toString());
-        }
+    public void append(CharSequence s) {
+        printWriter.append(s);
     }
 
     public void print(Object form) {
         try {
-            RT.print(form, this);
+            RT.print(form, printWriter);
         } catch (IOException impossible) {
             impossible.printStackTrace();
         }
