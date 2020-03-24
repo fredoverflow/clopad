@@ -9,6 +9,7 @@ import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -209,6 +210,28 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelp(Namespace namespace, Symbol symbol) {
+        String name = symbol.toString();
+        if (name.endsWith(".")) {
+            printHelpConstructor(namespace, Symbol.create(name.substring(0, name.length() - 1)));
+        } else {
+            printHelpNonConstructor(namespace, symbol);
+        }
+    }
+
+    private void printHelpConstructor(Namespace namespace, Symbol symbol) {
+        Object obj = Compiler.maybeResolveIn(namespace, symbol);
+        if (obj == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
+
+        if (obj instanceof Class<?>) {
+            Class<?> clazz = (Class<?>) obj;
+            String constructors = Java.sortedConstructors(clazz, Modifier::isPublic, "");
+            printHelp(symbol, constructors);
+        } else {
+            console.printWriter.println(obj);
+        }
+    }
+
+    private void printHelpNonConstructor(Namespace namespace, Symbol symbol) {
         Object obj = Compiler.maybeResolveIn(namespace, symbol);
         if (obj == null) throw new RuntimeException("Unable to resolve symbol: " + symbol + " in this context");
 
@@ -218,16 +241,21 @@ public class MainFrame extends JFrame {
             printHelp(var, resolved);
         } else if (obj instanceof Class<?>) {
             Class<?> clazz = (Class<?>) obj;
-            String methods = Java.sortedMethods(clazz, mod -> isPublic(mod) && !isStatic(mod), "\n");
-            String staticFields = Java.sortedFields(clazz, mod -> isPublic(mod) && isStatic(mod), "\n");
-            String staticMethods = Java.sortedMethods(clazz, mod -> isPublic(mod) && isStatic(mod), "");
-            if (staticFields.isEmpty() && staticMethods.isEmpty()) {
-                printHelp(symbol, methods);
-            } else {
-                printHelp(symbol, methods + "======== static members ========\n\n" + staticFields + staticMethods);
-            }
+            printHelpMembers(symbol, clazz);
         } else {
             console.printWriter.println(obj);
+        }
+    }
+
+    private void printHelpMembers(Symbol symbol, Class<?> clazz) {
+        String methods = Java.sortedMethods(clazz, mod -> isPublic(mod) && !isStatic(mod), "\n");
+        String staticFields = Java.sortedFields(clazz, mod -> isPublic(mod) && isStatic(mod), "\n");
+        String staticMethods = Java.sortedMethods(clazz, mod -> isPublic(mod) && isStatic(mod), "");
+
+        if (staticFields.isEmpty() && staticMethods.isEmpty()) {
+            printHelp(symbol, methods);
+        } else {
+            printHelp(symbol, methods + "======== static members ========\n\n" + staticFields + staticMethods);
         }
     }
 

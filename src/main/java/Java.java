@@ -1,6 +1,4 @@
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -10,6 +8,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Java {
+    public static String sortedConstructors(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
+        return textBlock(suffix, Arrays.stream(clazz.getConstructors())
+                .filter(constructor -> modifiersFilter.test(constructor.getModifiers()))
+                .sorted(Comparator.comparing(Constructor::getParameterCount))
+                .map(constructor -> clazz.getSimpleName() + parameters(constructor)));
+    }
+
     public static String sortedFields(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
         return textBlock(suffix, Arrays.stream(clazz.getFields())
                 .filter(method -> modifiersFilter.test(method.getModifiers()))
@@ -29,8 +34,8 @@ public class Java {
 
     private static final HashSet<Method> rootMethods = new HashSet<>(Arrays.asList(Object.class.getDeclaredMethods()));
 
-    private static String parameters(Method method) {
-        return Arrays.stream(method.getParameters())
+    private static String parameters(Executable executable) {
+        return Arrays.stream(executable.getParameters())
                 .map(Java::parameter)
                 .collect(Collectors.joining(", ", "(", ")"));
     }
