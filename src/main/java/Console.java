@@ -37,15 +37,14 @@ public class Console {
         }
     }
 
-    public void append(CharSequence s) {
-        printWriter.append(s);
-    }
-
-    public void print(Object form) {
-        try {
-            RT.print(form, printWriter);
-        } catch (IOException impossible) {
-            impossible.printStackTrace();
+    public void print(Object form, String suffix) {
+        synchronized (output) {
+            try {
+                RT.print(form, printWriter);
+                printWriter.append(suffix);
+            } catch (IOException impossible) {
+                impossible.printStackTrace(printWriter);
+            }
         }
     }
 }

@@ -246,7 +246,7 @@ public class MainFrame extends JFrame {
                 String text = input.getText();
                 Reader reader = new StringReader(text);
                 Object result = Compiler.load(reader, input.autosaver.directory, input.autosaver.filename);
-                console.print(result);
+                console.print(result, "\n");
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
@@ -265,10 +265,9 @@ public class MainFrame extends JFrame {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsBeforeCursor();
-            console.print(form);
-            console.append("\n\n");
+            console.print(form, "\n\n");
             Object result = Compiler.eval(form, false);
-            console.print(result);
+            console.print(result, "\n");
             if (isNamespaceForm(form)) {
                 updateNamespaces();
             }
