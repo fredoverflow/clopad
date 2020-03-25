@@ -174,7 +174,7 @@ public class MainFrame extends JFrame {
 
     private void printHelpFromInput(String lexeme) {
         console.run(() -> {
-            evaluateNamespaceFormsBeforeCursor();
+            evaluateNamespaceFormsStartingBeforeCursor();
             Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
             printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
         });
@@ -310,7 +310,7 @@ public class MainFrame extends JFrame {
     private void evaluateFormAtCursor() {
         console.run(() -> {
             input.autosaver.save();
-            Object form = evaluateNamespaceFormsBeforeCursor();
+            Object form = evaluateNamespaceFormsStartingBeforeCursor();
             console.print(form, "\n\n");
             Object result = Compiler.eval(form, false);
             console.print(result, "\n");
@@ -320,7 +320,7 @@ public class MainFrame extends JFrame {
         });
     }
 
-    private Object evaluateNamespaceFormsBeforeCursor() {
+    private Object evaluateNamespaceFormsStartingBeforeCursor() {
         String text = input.getText();
         Reader reader = new StringReader(text);
         LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
@@ -329,15 +329,16 @@ public class MainFrame extends JFrame {
         int column = 1 + input.column();
         for (; ; ) {
             Object form = LispReader.read(rdr, false, null, false, null);
-            if (skipWhitespace(rdr) == -1) return form;
-
-            int line = rdr.getLineNumber();
-            if (line > row || line == row && rdr.getColumnNumber() > column) return form;
 
             if (isNamespaceForm(form)) {
                 Compiler.eval(form, false);
                 updateNamespaces();
             }
+
+            if (skipWhitespace(rdr) == -1) return form;
+
+            int line = rdr.getLineNumber();
+            if (line > row || line == row && rdr.getColumnNumber() > column) return form;
         }
     }
 
