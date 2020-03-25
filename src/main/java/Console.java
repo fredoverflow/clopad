@@ -11,21 +11,25 @@ public class Console {
 
     private final JTabbedPane tabs;
     private final FreditorUI output;
+    private final FreditorWriter freditorWriter;
     public final PrintWriter printWriter;
     private final Object threadBindingFrame;
 
     public Console(JTabbedPane tabs, FreditorUI output) {
         this.tabs = tabs;
         this.output = output;
-        printWriter = new PrintWriter(new FreditorWriter(output));
+        freditorWriter = new FreditorWriter(output);
+        printWriter = new PrintWriter(freditorWriter);
         threadBindingFrame = Var.getThreadBindingFrame();
     }
 
     public void run(Runnable body) {
         Var.resetThreadBindingFrame(threadBindingFrame);
         Var.pushThreadBindings(RT.map(RT.OUT, printWriter, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
-        output.loadFromString("");
-        tabs.setSelectedComponent(output);
+        freditorWriter.beforeFirstWrite = () -> {
+            output.loadFromString("");
+            tabs.setSelectedComponent(output);
+        };
         try {
             body.run();
         } catch (Throwable ex) {
