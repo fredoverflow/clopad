@@ -1,6 +1,7 @@
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.function.IntPredicate;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,7 +12,7 @@ public class Java {
         if (result.size() < 2) return "";
 
         return result.stream()
-                .map(Java::withoutJavaLang)
+                .map(Java::implicitJavaLang)
                 .collect(Collectors.joining(" -> ", "", "\n"));
     }
 
@@ -32,7 +33,7 @@ public class Java {
         if (result.isEmpty()) return "";
 
         return result.stream()
-                .map(Java::withoutJavaLang)
+                .map(Java::implicitJavaLang)
                 .collect(Collectors.joining(", ", clazz.isInterface() ? "extends* " : "implements* ", "\n"));
     }
 
@@ -55,7 +56,7 @@ public class Java {
         return textBlock(suffix, Arrays.stream(clazz.getFields())
                 .filter(method -> modifiersFilter.test(method.getModifiers()))
                 .sorted(Comparator.comparing(Field::getName))
-                .map(field -> field.getName() + ": " + withoutJavaLang(field.getType())));
+                .map(field -> field.getName() + ": " + implicitJavaLang(field.getType())));
     }
 
     public static String sortedMethods(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
@@ -65,7 +66,7 @@ public class Java {
         }
         return textBlock(suffix, stream.filter(method -> modifiersFilter.test(method.getModifiers()))
                 .sorted(Comparator.comparing(Method::getName).thenComparing(Method::getParameterCount))
-                .map(method -> method.getName() + parameters(method) + ": " + withoutJavaLang(method.getReturnType())));
+                .map(method -> method.getName() + parameters(method) + ": " + implicitJavaLang(method.getReturnType())));
     }
 
     private static final HashSet<Method> rootMethods = new HashSet<>(Arrays.asList(Object.class.getDeclaredMethods()));
@@ -78,7 +79,7 @@ public class Java {
 
     private static String parameter(Parameter parameter) {
         String name = parameter.getName();
-        String type = withoutJavaLang(parameter.getType());
+        String type = implicitJavaLang(parameter.getType());
         if (SYNTHESIZED_PARAMETER.matcher(name).matches()) {
             return type;
         } else {
@@ -88,14 +89,13 @@ public class Java {
 
     private static final Pattern SYNTHESIZED_PARAMETER = Pattern.compile("arg\\d+");
 
-    private static String withoutJavaLang(Class<?> type) {
+    private static String implicitJavaLang(Class<?> type) {
         String name = type.getTypeName();
-        if (name.startsWith("java.lang.")) {
-            return name.substring(10);
-        } else {
-            return name;
-        }
+        Matcher matcher = JAVA_LANG.matcher(name);
+        return matcher.matches() ? matcher.group(1) : name;
     }
+
+    private static final Pattern JAVA_LANG = Pattern.compile("java\\.lang\\.([^.]+)");
 
     private static String textBlock(String suffix, Stream<String> stream) {
         StringBuilder builder = new StringBuilder();
