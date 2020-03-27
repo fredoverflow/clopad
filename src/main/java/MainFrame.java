@@ -12,8 +12,6 @@ import java.io.*;
 import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
@@ -85,8 +83,6 @@ public class MainFrame extends JFrame {
         console = new Console(tabs, output);
         addListeners();
         boringStuff();
-
-        sourceLocation = Pattern.compile(input.autosaver.filename + ":(\\d+)");
     }
 
     private void updateNamespaces() {
@@ -119,7 +115,7 @@ public class MainFrame extends JFrame {
             public void keyPressed(KeyEvent event) {
                 switch (event.getKeyCode()) {
                     case KeyEvent.VK_F1:
-                        printHelpFromInput(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
+                        printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
                         break;
 
                     case KeyEvent.VK_F5:
@@ -133,8 +129,8 @@ public class MainFrame extends JFrame {
             }
         });
 
-        input.onRightClick = this::printHelpFromInput;
-        output.onRightClick = this::setCursorToSourceLocation;
+        input.onRightClick = this::printHelpInCurrentNamespace;
+        output.onRightClick = this::printHelpInCurrentNamespace;
 
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -162,17 +158,7 @@ public class MainFrame extends JFrame {
         filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
-    private final Pattern sourceLocation;
-
-    private void setCursorToSourceLocation(String lexeme) {
-        Matcher matcher = sourceLocation.matcher(lexeme);
-        if (matcher.matches()) {
-            int row = Integer.parseInt(matcher.group(1));
-            input.setCursorTo(row - 1, 0);
-        }
-    }
-
-    private void printHelpFromInput(String lexeme) {
+    private void printHelpInCurrentNamespace(String lexeme) {
         console.run(() -> {
             evaluateNamespaceFormsStartingBeforeCursor();
             Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
