@@ -207,6 +207,7 @@ public class MainFrame extends JFrame {
         if (symbol == null) return;
 
         console.run(() -> printHelp((Namespace) namespace, symbol));
+        input.requestFocusInWindow();
     }
 
     private void printHelp(Namespace namespace, Symbol symbol) {
