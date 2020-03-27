@@ -49,7 +49,7 @@ public class Java {
         return textBlock(suffix, Arrays.stream(clazz.getConstructors())
                 .filter(constructor -> modifiersFilter.test(constructor.getModifiers()))
                 .sorted(Comparator.comparing(Constructor::getParameterCount))
-                .map(constructor -> clazz.getSimpleName() + parameters(constructor)));
+                .map(constructor -> clazz.getSimpleName() + parameters(constructor) + exceptionTypes(constructor)));
     }
 
     public static String sortedFields(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
@@ -66,7 +66,7 @@ public class Java {
         }
         return textBlock(suffix, stream.filter(method -> modifiersFilter.test(method.getModifiers()))
                 .sorted(Comparator.comparing(Method::getName).thenComparing(Method::getParameterCount))
-                .map(method -> method.getName() + parameters(method) + ": " + implicitJavaLang(method.getReturnType())));
+                .map(method -> method.getName() + parameters(method) + ": " + implicitJavaLang(method.getReturnType()) + exceptionTypes(method)));
     }
 
     private static final HashSet<Method> rootMethods = new HashSet<>(Arrays.asList(Object.class.getDeclaredMethods()));
@@ -85,6 +85,15 @@ public class Java {
         } else {
             return name + ": " + type;
         }
+    }
+
+    private static String exceptionTypes(Executable executable) {
+        Class<?>[] exceptionTypes = executable.getExceptionTypes();
+        if (exceptionTypes.length == 0) return "";
+
+        return Arrays.stream(exceptionTypes)
+                .map(Java::implicitJavaLang)
+                .collect(Collectors.joining(", ", " (", ")"));
     }
 
     private static final Pattern SYNTHESIZED_PARAMETER = Pattern.compile("arg\\d+");
