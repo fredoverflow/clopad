@@ -21,6 +21,7 @@ public class MainFrame extends JFrame {
     private FreditorUI output;
     private HashMap<Symbol, FreditorUI_symbol> infos;
     private JTabbedPane tabs;
+    private JSplitPane split;
 
     private JComboBox<Namespace> namespaces;
     private JList<Symbol> names;
@@ -76,7 +77,7 @@ public class MainFrame extends JFrame {
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
 
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs);
+        split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs);
         split.setResizeWeight(1.0);
         add(split);
 
@@ -149,6 +150,19 @@ public class MainFrame extends JFrame {
                     input.requestFocusInWindow();
                 }
             }
+        });
+
+        split.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, event -> {
+            SwingUtilities.invokeLater(() -> {
+                final int frontHeight = Front.front.height;
+                int rest = tabs.getSelectedComponent().getHeight() % frontHeight;
+                if (rest > 0) {
+                    if ((int) event.getNewValue() < (int) event.getOldValue()) {
+                        rest -= frontHeight;
+                    }
+                    split.setDividerLocation(split.getDividerLocation() + rest);
+                }
+            });
         });
 
         namespaces.addItemListener(event -> filterSymbols());
