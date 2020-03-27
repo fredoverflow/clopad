@@ -1,13 +1,49 @@
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.*;
 import java.util.function.IntPredicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class Java {
+    public static String classChain(Class<?> clazz) {
+        ArrayList<Class<?>> result = classChainList(clazz);
+        if (result.size() < 2) return "";
+
+        return result.stream()
+                .map(Java::withoutJavaLang)
+                .collect(Collectors.joining(" -> ", "", "\n"));
+    }
+
+    private static ArrayList<Class<?>> classChainList(Class<?> clazz) {
+        ArrayList<Class<?>> result = new ArrayList<>();
+        while (clazz != null) {
+            result.add(clazz);
+            clazz = clazz.getSuperclass();
+        }
+        return result;
+    }
+
+    public static String allInterfaces(Class<?> clazz) {
+        LinkedHashSet<Class<?>> result = new LinkedHashSet<>();
+        for (Class<?> ancestor : classChainList(clazz)) {
+            insertAllInterfaces(ancestor, result);
+        }
+        if (result.isEmpty()) return "";
+
+        return result.stream()
+                .map(Java::withoutJavaLang)
+                .collect(Collectors.joining(", ", clazz.isInterface() ? "extends* " : "implements* ", "\n"));
+    }
+
+    private static void insertAllInterfaces(Class<?> clazz, LinkedHashSet<Class<?>> result) {
+        for (Class<?> directInterface : clazz.getInterfaces()) {
+            if (result.add(directInterface)) {
+                insertAllInterfaces(directInterface, result);
+            }
+        }
+    }
+
     public static String sortedConstructors(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
         return textBlock(suffix, Arrays.stream(clazz.getConstructors())
                 .filter(constructor -> modifiersFilter.test(constructor.getModifiers()))

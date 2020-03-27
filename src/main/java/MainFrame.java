@@ -240,14 +240,19 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelpMembers(Symbol symbol, Class<?> clazz) {
+        String header = Java.classChain(clazz) + Java.allInterfaces(clazz);
+        if (!header.isEmpty()) {
+            header += "\n";
+        }
+
         String methods = Java.sortedMethods(clazz, mod -> isPublic(mod) && !isStatic(mod), "\n");
         String staticFields = Java.sortedFields(clazz, mod -> isPublic(mod) && isStatic(mod), "\n");
         String staticMethods = Java.sortedMethods(clazz, mod -> isPublic(mod) && isStatic(mod), "");
 
         if (staticFields.isEmpty() && staticMethods.isEmpty()) {
-            printHelp(symbol, methods);
+            printHelp(symbol, header + methods);
         } else {
-            printHelp(symbol, methods + "======== static members ========\n\n" + staticFields + staticMethods);
+            printHelp(symbol, header + methods + "======== static members ========\n\n" + staticFields + staticMethods);
         }
     }
 
