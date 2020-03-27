@@ -169,8 +169,13 @@ public class MainFrame extends JFrame {
     private void printHelpFromHelp(String lexeme) {
         console.run(() -> {
             FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
-            Namespace namespace = Namespace.find(Symbol.create(selected.symbol.getNamespace()));
-            printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
+            String selectedSymbolNamespace = selected.symbol.getNamespace();
+            if (selectedSymbolNamespace != null) {
+                Namespace namespace = Namespace.find(Symbol.create(selectedSymbolNamespace));
+                printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
+            } else {
+                printHelpInCurrentNamespace(lexeme);
+            }
         });
     }
 
