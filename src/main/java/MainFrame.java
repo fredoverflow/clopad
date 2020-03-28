@@ -81,7 +81,7 @@ public class MainFrame extends JFrame {
         split.setResizeWeight(1.0);
         add(split);
 
-        console = new Console(tabs, output);
+        console = new Console(tabs, output, input.autosaver.pathname, input.autosaver.filename);
         addListeners();
         boringStuff();
     }
@@ -302,7 +302,7 @@ public class MainFrame extends JFrame {
                 input.requestFocusInWindow();
                 String text = input.getText();
                 Reader reader = new StringReader(text);
-                Object result = Compiler.load(reader, input.autosaver.directory, input.autosaver.filename);
+                Object result = Compiler.load(reader, input.autosaver.pathname, input.autosaver.filename);
                 console.print(result, "\n");
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {

@@ -1,3 +1,4 @@
+import clojure.lang.Compiler;
 import clojure.lang.RT;
 import clojure.lang.Var;
 import freditor.FreditorUI;
@@ -11,13 +12,19 @@ public class Console {
 
     private final JTabbedPane tabs;
     private final FreditorUI output;
+    private final String sourcePath;
+    private final String sourceName;
+
     private final FreditorWriter freditorWriter;
     public final PrintWriter printWriter;
     private final Object threadBindingFrame;
 
-    public Console(JTabbedPane tabs, FreditorUI output) {
+    public Console(JTabbedPane tabs, FreditorUI output, String sourcePath, String sourceName) {
         this.tabs = tabs;
         this.output = output;
+        this.sourcePath = sourcePath;
+        this.sourceName = sourceName;
+
         freditorWriter = new FreditorWriter(output);
         printWriter = new PrintWriter(freditorWriter);
         threadBindingFrame = Var.getThreadBindingFrame();
@@ -25,7 +32,13 @@ public class Console {
 
     public void run(Runnable body) {
         Var.resetThreadBindingFrame(threadBindingFrame);
-        Var.pushThreadBindings(RT.map(RT.OUT, printWriter, Clojure.printLength, PRINT_LENGTH, RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+        Var.pushThreadBindings(RT.map(
+                Compiler.SOURCE_PATH, sourcePath,
+                Compiler.SOURCE, sourceName,
+                RT.OUT, printWriter,
+                Clojure.printLength, PRINT_LENGTH,
+                RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+
         freditorWriter.beforeFirstWrite = () -> {
             output.loadFromString("");
             tabs.setSelectedComponent(output);
