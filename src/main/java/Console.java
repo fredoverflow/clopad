@@ -36,6 +36,7 @@ public class Console {
                 Compiler.SOURCE_PATH, sourcePath,
                 Compiler.SOURCE, sourceName,
                 RT.OUT, printWriter,
+                RT.ERR, printWriter,
                 Clojure.printLength, PRINT_LENGTH,
                 RT.CURRENT_NS, RT.CURRENT_NS.deref()));
 
