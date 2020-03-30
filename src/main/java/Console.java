@@ -6,6 +6,7 @@ import freditor.FreditorUI;
 import javax.swing.*;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 
 public class Console {
     private static final int PRINT_LENGTH = 100;
@@ -50,13 +51,14 @@ public class Console {
     }
 
     public void print(Object form, String suffix) {
-        synchronized (output) {
-            try {
-                RT.print(form, printWriter);
-                printWriter.append(suffix);
-            } catch (IOException impossible) {
-                impossible.printStackTrace(printWriter);
-            }
+        StringWriter stringWriter = new StringWriter();
+        try {
+            RT.print(form, stringWriter);
+            stringWriter.append(suffix);
+        } catch (Throwable ex) {
+            ex.printStackTrace(new PrintWriter(stringWriter));
+        } finally {
+            printWriter.append(stringWriter.toString());
         }
     }
 }
