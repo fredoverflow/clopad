@@ -12,38 +12,30 @@ public class Console {
 
     private final JTabbedPane tabs;
     private final FreditorUI output;
-    private final String sourcePath;
-    private final String sourceName;
 
     private final FreditorWriter freditorWriter;
     public final PrintWriter printWriter;
-    private final Object threadBindingFrame;
 
     public Console(JTabbedPane tabs, FreditorUI output, String sourcePath, String sourceName) {
         this.tabs = tabs;
         this.output = output;
-        this.sourcePath = sourcePath;
-        this.sourceName = sourceName;
 
         freditorWriter = new FreditorWriter(output);
         printWriter = new PrintWriter(freditorWriter);
-        threadBindingFrame = Var.getThreadBindingFrame();
+
+        Compiler.SOURCE_PATH.bindRoot(sourcePath);
+        Compiler.SOURCE.bindRoot(sourceName);
+        RT.OUT.bindRoot(printWriter);
+        RT.ERR.bindRoot(printWriter);
+        Clojure.printLength.bindRoot(PRINT_LENGTH);
     }
 
     public void run(Runnable body) {
-        Var.resetThreadBindingFrame(threadBindingFrame);
-        Var.pushThreadBindings(RT.map(
-                Compiler.SOURCE_PATH, sourcePath,
-                Compiler.SOURCE, sourceName,
-                RT.OUT, printWriter,
-                RT.ERR, printWriter,
-                Clojure.printLength, PRINT_LENGTH,
-                RT.CURRENT_NS, RT.CURRENT_NS.deref()));
-
         freditorWriter.beforeFirstWrite = () -> {
             output.loadFromString("");
             tabs.setSelectedComponent(output);
         };
+        Var.pushThreadBindings(RT.map(RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
             body.run();
         } catch (Throwable ex) {
@@ -52,6 +44,8 @@ public class Console {
                 cause = ex;
             }
             cause.printStackTrace(printWriter);
+        } finally {
+            Var.popThreadBindings();
         }
     }
 
