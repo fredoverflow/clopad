@@ -17,7 +17,12 @@ public class FreditorWriter extends Writer {
             beforeFirstWrite.run();
             beforeFirstWrite = null;
         }
-        output.append(new ArrayCharSequence(cbuf, off, len));
+        if (len == 2 && cbuf[off] == '\r') {
+            // PrintWriter.newLine() writes System.lineSeparator()
+            output.append("\n");
+        } else {
+            output.append(new ArrayCharSequence(cbuf, off, len));
+        }
     }
 
     @Override
