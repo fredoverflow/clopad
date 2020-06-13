@@ -13,8 +13,8 @@ public class Flexer extends freditor.Flexer {
     private static final FlexerState COMMENT_TAIL = new FlexerState('\n', null).setDefault(THIS);
     private static final FlexerState COMMENT_HEAD = COMMENT_TAIL.head();
 
-    private static final FlexerState CHAR_CONSTANT_TAIL = new FlexerState("!?@~", THIS);
-    private static final FlexerState CHAR_CONSTANT_HEAD = CHAR_CONSTANT_TAIL.head();
+    private static final FlexerState CHAR_CONSTANT_TAIL = new FlexerState("09AFaz", THIS);
+    private static final FlexerState CHAR_CONSTANT_HEAD = new FlexerState("!?@~", CHAR_CONSTANT_TAIL).head();
 
     private static final FlexerState STRING_LITERAL_END = EMPTY.tail();
     private static final FlexerState STRING_LITERAL_ESCAPE = new FlexerState('\n', null);
@@ -75,6 +75,7 @@ public class Flexer extends freditor.Flexer {
 
     private static final ChampMap<FlexerState, Integer> lexemeColors = ChampMap.of(ERROR, 0xff0000)
             .put(COMMENT_HEAD, COMMENT_TAIL, 0x999988)
+            .put(CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0x00a67a)
             .put(STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a)
             .put(NUMBER_HEAD, NUMBER_TAIL, 0x143dfb)
             .put(START.read("false", "nil", "true"), 0x143dfb)
