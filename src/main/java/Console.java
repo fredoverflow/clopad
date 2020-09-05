@@ -4,7 +4,6 @@ import clojure.lang.Var;
 import freditor.FreditorUI;
 
 import javax.swing.*;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -51,9 +50,17 @@ public class Console {
     }
 
     public void print(Object form, String suffix) {
+        print(form, RT::print, suffix);
+    }
+
+    public void print(Object form, PrintFormToWriter printFormToWriter) {
+        print(form, printFormToWriter, "");
+    }
+
+    public void print(Object form, PrintFormToWriter printFormToWriter, String suffix) {
         StringWriter stringWriter = new StringWriter();
         try {
-            RT.print(form, stringWriter);
+            printFormToWriter.print(form, stringWriter);
             stringWriter.append(suffix);
         } catch (Throwable ex) {
             ex.printStackTrace(new PrintWriter(stringWriter));

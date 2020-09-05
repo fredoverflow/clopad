@@ -120,21 +120,25 @@ public class MainFrame extends JFrame {
                         break;
 
                     case KeyEvent.VK_F5:
-                        evaluateWholeProgram();
+                        evaluateWholeProgram(selectPrintFormToWriter(event));
                         break;
 
                     case KeyEvent.VK_F11:
-                        macroexpandFormAtCursor(selectMacroexpand(event));
+                        macroexpandFormAtCursor(selectMacroexpand(event), selectPrintFormToWriter(event));
                         break;
 
                     case KeyEvent.VK_F12:
-                        evaluateFormAtCursor();
+                        evaluateFormAtCursor(selectPrintFormToWriter(event));
                         break;
                 }
             }
 
             private IFn selectMacroexpand(KeyEvent event) {
                 return Editor.isControlRespectivelyCommandDown(event) ? Clojure.macroexpandAll : Clojure.macroexpand;
+            }
+
+            private PrintFormToWriter selectPrintFormToWriter(KeyEvent event) {
+                return event.isShiftDown() ? Clojure.pprint::invoke : RT::print;
             }
         });
 
@@ -303,11 +307,11 @@ public class MainFrame extends JFrame {
         return info;
     }
 
-    private void printForm(Symbol symbol, Object form) {
+    private void printForm(Symbol symbol, Object form, PrintFormToWriter printFormToWriter) {
         FreditorUI_symbol info = infos.computeIfAbsent(symbol, this::newInfo);
         StringWriter stringWriter = new StringWriter();
         try {
-            RT.print(form, stringWriter);
+            printFormToWriter.print(form, stringWriter);
         } catch (Throwable ex) {
             ex.printStackTrace(new PrintWriter(stringWriter));
         } finally {
@@ -318,16 +322,16 @@ public class MainFrame extends JFrame {
 
     private static final Symbol macroExpansion = Symbol.create("clopad", "macro expansion");
 
-    private void macroexpandFormAtCursor(IFn macroexpand) {
+    private void macroexpandFormAtCursor(IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
             Object expansion = macroexpand.invoke(form);
-            printForm(macroExpansion, expansion);
+            printForm(macroExpansion, expansion, printFormToWriter);
         });
     }
 
-    private void evaluateWholeProgram() {
+    private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             try {
                 input.autosaver.save();
@@ -335,7 +339,7 @@ public class MainFrame extends JFrame {
                 String text = input.getText();
                 Reader reader = new StringReader(text);
                 Object result = Compiler.load(reader, input.autosaver.pathname, input.autosaver.filename);
-                console.print(result, "\n");
+                console.print(result, printFormToWriter);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
@@ -350,13 +354,13 @@ public class MainFrame extends JFrame {
         });
     }
 
-    private void evaluateFormAtCursor() {
+    private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
             console.print(form, "\n\n");
             Object result = Compiler.eval(form, false);
-            console.print(result, "\n");
+            console.print(result, printFormToWriter);
             if (isNamespaceForm(form)) {
                 updateNamespaces();
             }
