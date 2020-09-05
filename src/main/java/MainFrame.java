@@ -123,10 +123,18 @@ public class MainFrame extends JFrame {
                         evaluateWholeProgram();
                         break;
 
+                    case KeyEvent.VK_F11:
+                        macroexpandFormAtCursor(selectMacroexpand(event));
+                        break;
+
                     case KeyEvent.VK_F12:
                         evaluateFormAtCursor();
                         break;
                 }
+            }
+
+            private IFn selectMacroexpand(KeyEvent event) {
+                return Editor.isControlRespectivelyCommandDown(event) ? Clojure.macroexpandAll : Clojure.macroexpand;
             }
         });
 
@@ -293,6 +301,30 @@ public class MainFrame extends JFrame {
         info.onRightClick = this::printHelpFromHelp;
         tabs.addTab(symbol.getName(), info);
         return info;
+    }
+
+    private void printForm(Symbol symbol, Object form) {
+        FreditorUI_symbol info = infos.computeIfAbsent(symbol, this::newInfo);
+        StringWriter stringWriter = new StringWriter();
+        try {
+            RT.print(form, stringWriter);
+        } catch (Throwable ex) {
+            ex.printStackTrace(new PrintWriter(stringWriter));
+        } finally {
+            info.loadFromString(stringWriter.toString());
+        }
+        tabs.setSelectedComponent(info);
+    }
+
+    private static final Symbol macroExpansion = Symbol.create("clopad", "macro expansion");
+
+    private void macroexpandFormAtCursor(IFn macroexpand) {
+        console.run(() -> {
+            input.autosaver.save();
+            Object form = evaluateNamespaceFormsStartingBeforeCursor();
+            Object expansion = macroexpand.invoke(form);
+            printForm(macroExpansion, expansion);
+        });
     }
 
     private void evaluateWholeProgram() {
