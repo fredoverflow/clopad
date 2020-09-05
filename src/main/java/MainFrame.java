@@ -307,7 +307,8 @@ public class MainFrame extends JFrame {
         return info;
     }
 
-    private void printForm(Symbol symbol, Object form, PrintFormToWriter printFormToWriter) {
+    private void printForm(String title, Object form, PrintFormToWriter printFormToWriter) {
+        Symbol symbol = Symbol.create(RT.CURRENT_NS.deref().toString(), title);
         FreditorUI_symbol info = infos.computeIfAbsent(symbol, this::newInfo);
         StringWriter stringWriter = new StringWriter();
         try {
@@ -320,14 +321,12 @@ public class MainFrame extends JFrame {
         tabs.setSelectedComponent(info);
     }
 
-    private static final Symbol macroExpansion = Symbol.create("clopad", "macro expansion");
-
     private void macroexpandFormAtCursor(IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
             Object expansion = macroexpand.invoke(form);
-            printForm(macroExpansion, expansion, printFormToWriter);
+            printForm("macro expansion", expansion, printFormToWriter);
         });
     }
 
