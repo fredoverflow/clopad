@@ -7,6 +7,7 @@ public class Clojure {
     public static final Keyword doc;
     public static final Symbol ns;
     public static final Var printLength;
+    public static final Var warnOnReflection;
 
     public static final IFn macroexpand;
     public static final IFn macroexpandAll;
@@ -23,6 +24,7 @@ public class Clojure {
         doc = Keyword.intern("doc");
         ns = Symbol.create(null, "ns");
         printLength = Var.find(Symbol.create("clojure.core", "*print-length*"));
+        warnOnReflection = Var.find(Symbol.create("clojure.core", "*warn-on-reflection*"));
 
         macroexpand = Var.find(Symbol.create("clojure.core", "macroexpand"));
         macroexpandAll = Var.find(Symbol.create("clojure.walk", "macroexpand-all"));

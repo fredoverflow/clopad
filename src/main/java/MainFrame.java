@@ -13,6 +13,7 @@ import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import static clojure.lang.Compiler.*;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 
@@ -335,12 +336,10 @@ public class MainFrame extends JFrame {
             try {
                 input.autosaver.save();
                 input.requestFocusInWindow();
-                String text = input.getText();
-                Reader reader = new StringReader(text);
-                Object result = Compiler.load(reader, input.autosaver.pathname, input.autosaver.filename);
+                Object result = loadFromScratch();
                 console.print(result, printFormToWriter);
                 updateNamespaces();
-            } catch (Compiler.CompilerException ex) {
+            } catch (CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
                 if (ex.line > 0) {
                     String message = ex.getMessage();
@@ -351,6 +350,53 @@ public class MainFrame extends JFrame {
                 }
             }
         });
+    }
+
+    private Object loadFromScratch() {
+        String text = input.getText();
+        Reader reader = new StringReader(text);
+        LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
+
+        skipWhitespace(rdr);
+        int lineBefore = rdr.getLineNumber();
+        int columnBefore = rdr.getColumnNumber();
+
+        Object result = null;
+        Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
+                SOURCE_PATH, input.autosaver.pathname,
+                SOURCE, input.autosaver.filename,
+                METHOD, null,
+                LOCAL_ENV, null,
+                LOOP_LOCALS, null,
+                NEXT_LOCAL_NUM, 0,
+                RT.READEVAL, RT.T,
+                RT.CURRENT_NS, RT.CURRENT_NS.deref(),
+                RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref(),
+                Clojure.warnOnReflection, Clojure.warnOnReflection.deref(),
+                RT.DATA_READERS, RT.DATA_READERS.deref()));
+        try {
+            Object EOF = new Object();
+            Object form;
+            while ((form = LispReader.read(rdr, false, EOF, false, null)) != EOF) {
+                if (isNamespaceForm(form)) {
+                    Namespace.remove((Symbol) ((PersistentList) form).next().first());
+                }
+                result = Compiler.eval(form, false);
+
+                skipWhitespace(rdr);
+                lineBefore = rdr.getLineNumber();
+                columnBefore = rdr.getColumnNumber();
+            }
+        } catch (LispReader.ReaderException ex) {
+            throw new CompilerException(input.autosaver.pathname, ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
+        } catch (CompilerException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            throw new CompilerException(input.autosaver.pathname, lineBefore, columnBefore, ex);
+        } finally {
+            Var.popThreadBindings();
+        }
+        return result;
     }
 
     private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
@@ -394,7 +440,9 @@ public class MainFrame extends JFrame {
             do {
                 ch = rdr.read();
             } while (Character.isWhitespace(ch) || ch == ',');
-            rdr.unread(ch);
+            if (ch != -1) {
+                rdr.unread(ch);
+            }
         } catch (IOException ex) {
             ex.printStackTrace();
         }
