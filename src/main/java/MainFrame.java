@@ -8,12 +8,12 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import static clojure.lang.Compiler.*;
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 
@@ -336,10 +336,10 @@ public class MainFrame extends JFrame {
             try {
                 input.autosaver.save();
                 input.requestFocusInWindow();
-                Object result = loadFromScratch();
+                Object result = Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename);
                 console.print(result, printFormToWriter);
                 updateNamespaces();
-            } catch (CompilerException ex) {
+            } catch (Compiler.CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
                 if (ex.line > 0) {
                     String message = ex.getMessage();
@@ -352,105 +352,18 @@ public class MainFrame extends JFrame {
         });
     }
 
-    private Object loadFromScratch() {
-        String text = input.getText();
-        Reader reader = new StringReader(text);
-        LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
-
-        skipWhitespace(rdr);
-        int lineBefore = rdr.getLineNumber();
-        int columnBefore = rdr.getColumnNumber();
-
-        Object result = null;
-        Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
-                SOURCE_PATH, input.autosaver.pathname,
-                SOURCE, input.autosaver.filename,
-                METHOD, null,
-                LOCAL_ENV, null,
-                LOOP_LOCALS, null,
-                NEXT_LOCAL_NUM, 0,
-                RT.READEVAL, RT.T,
-                RT.CURRENT_NS, RT.CURRENT_NS.deref(),
-                RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref(),
-                Clojure.warnOnReflection, Clojure.warnOnReflection.deref(),
-                RT.DATA_READERS, RT.DATA_READERS.deref()));
-        try {
-            Object EOF = new Object();
-            Object form;
-            while ((form = LispReader.read(rdr, false, EOF, false, null)) != EOF) {
-                if (isNamespaceForm(form)) {
-                    Namespace.remove((Symbol) ((PersistentList) form).next().first());
-                }
-                result = Compiler.eval(form, false);
-
-                skipWhitespace(rdr);
-                lineBefore = rdr.getLineNumber();
-                columnBefore = rdr.getColumnNumber();
-            }
-        } catch (LispReader.ReaderException ex) {
-            throw new CompilerException(input.autosaver.pathname, ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
-        } catch (CompilerException ex) {
-            throw ex;
-        } catch (Throwable ex) {
-            throw new CompilerException(input.autosaver.pathname, lineBefore, columnBefore, ex);
-        } finally {
-            Var.popThreadBindings();
-        }
-        return result;
-    }
-
     private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
             console.print(form, "\n\n");
-            Object result = Compiler.eval(form, false);
+            Object result = Clojure.isNamespaceForm(form) ? null : Compiler.eval(form, false);
             console.print(result, printFormToWriter);
-            if (isNamespaceForm(form)) {
-                updateNamespaces();
-            }
         });
     }
 
     private Object evaluateNamespaceFormsStartingBeforeCursor() {
-        String text = input.getText();
-        Reader reader = new StringReader(text);
-        LineNumberingPushbackReader rdr = new LineNumberingPushbackReader(reader);
-
-        int row = 1 + input.row();
-        int column = 1 + input.column();
-        for (; ; ) {
-            Object form = LispReader.read(rdr, false, null, false, null);
-
-            if (isNamespaceForm(form)) {
-                Compiler.eval(form, false);
-                updateNamespaces();
-            }
-
-            if (skipWhitespace(rdr) == -1) return form;
-
-            int line = rdr.getLineNumber();
-            if (line > row || line == row && rdr.getColumnNumber() > column) return form;
-        }
-    }
-
-    private int skipWhitespace(PushbackReader rdr) {
-        int ch = -1;
-        try {
-            do {
-                ch = rdr.read();
-            } while (Character.isWhitespace(ch) || ch == ',');
-            if (ch != -1) {
-                rdr.unread(ch);
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        return ch;
-    }
-
-    private boolean isNamespaceForm(Object form) {
-        return form instanceof PersistentList && ((PersistentList) form).first().equals(Clojure.ns);
+        return Clojure.evaluateNamespaceFormsStartingBefore(input.getText(), 1 + input.row(), 1 + input.column(), this::updateNamespaces);
     }
 
     private void boringStuff() {

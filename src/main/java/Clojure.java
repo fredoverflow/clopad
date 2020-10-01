@@ -1,7 +1,11 @@
-import clojure.lang.IFn;
-import clojure.lang.Keyword;
-import clojure.lang.Symbol;
-import clojure.lang.Var;
+import clojure.lang.Compiler;
+import clojure.lang.*;
+
+import java.io.IOException;
+import java.io.PushbackReader;
+import java.io.StringReader;
+
+import static clojure.lang.Compiler.*;
 
 public class Clojure {
     public static final Keyword doc;
@@ -31,5 +35,87 @@ public class Clojure {
         nsInterns = Var.find(Symbol.create("clojure.core", "ns-interns"));
         pprint = Var.find(Symbol.create("clojure.pprint", "pprint"));
         sourceFn = Var.find(Symbol.create("clojure.repl", "source-fn"));
+    }
+
+    public static Object loadFromScratch(String text, String pathname, String filename) {
+        LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
+
+        skipWhitespace(reader);
+        int lineBefore = reader.getLineNumber();
+        int columnBefore = reader.getColumnNumber();
+
+        Object result = null;
+        Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
+                SOURCE_PATH, pathname,
+                SOURCE, filename,
+                METHOD, null,
+                LOCAL_ENV, null,
+                LOOP_LOCALS, null,
+                NEXT_LOCAL_NUM, 0,
+                RT.READEVAL, RT.T,
+                RT.CURRENT_NS, RT.CURRENT_NS.deref(),
+                RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref(),
+                warnOnReflection, warnOnReflection.deref(),
+                RT.DATA_READERS, RT.DATA_READERS.deref()));
+        try {
+            Object EOF = new Object();
+            Object form;
+            while ((form = LispReader.read(reader, false, EOF, false, null)) != EOF) {
+                if (isNamespaceForm(form)) {
+                    Namespace.remove((Symbol) ((PersistentList) form).next().first());
+                }
+                result = Compiler.eval(form, false);
+
+                skipWhitespace(reader);
+                lineBefore = reader.getLineNumber();
+                columnBefore = reader.getColumnNumber();
+            }
+        } catch (LispReader.ReaderException ex) {
+            throw new CompilerException(pathname, ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
+        } catch (CompilerException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            throw new CompilerException(pathname, lineBefore, columnBefore, ex);
+        } finally {
+            Var.popThreadBindings();
+        }
+        return result;
+    }
+
+    private static int skipWhitespace(PushbackReader reader) {
+        int ch = -1;
+        try {
+            do {
+                ch = reader.read();
+            } while (Character.isWhitespace(ch) || ch == ',');
+            if (ch != -1) {
+                reader.unread(ch);
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        return ch;
+    }
+
+    public static boolean isNamespaceForm(Object form) {
+        return form instanceof PersistentList && ((PersistentList) form).first().equals(ns);
+    }
+
+    public static Object evaluateNamespaceFormsStartingBefore(String text, int row, int column, Runnable updateNamespaces) {
+        Object form = null;
+        LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
+        long rowColumn = combine(row, column);
+        while (skipWhitespace(reader) != -1 && combine(reader.getLineNumber(), reader.getColumnNumber()) <= rowColumn) {
+            form = LispReader.read(reader, false, null, false, null);
+            if (isNamespaceForm(form)) {
+                Compiler.eval(form, false);
+                updateNamespaces.run();
+            }
+        }
+        return form;
+    }
+
+    private static long combine(int hi, int lo) {
+        return (long) hi << 32 | lo;
     }
 }
