@@ -8,6 +8,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Console {
+    // The redundant new String(original) is necessary here because
+    // NEWLINE must be distinct from interned Clojure string literals.
+    static final String NEWLINE = new String("\n");
+
     private static final int PRINT_LENGTH = 100;
 
     private final JTabbedPane tabs;
@@ -49,19 +53,20 @@ public class Console {
         }
     }
 
-    public void print(Object form, String suffix) {
-        print(form, RT::print, suffix);
+    public void print(Object... forms) {
+        print(RT::print, forms);
     }
 
-    public void print(Object form, PrintFormToWriter printFormToWriter) {
-        print(form, printFormToWriter, "");
-    }
-
-    public void print(Object form, PrintFormToWriter printFormToWriter, String suffix) {
+    public void print(PrintFormToWriter printFormToWriter, Object... forms) {
         StringWriter stringWriter = new StringWriter();
         try {
-            printFormToWriter.print(form, stringWriter);
-            stringWriter.append(suffix);
+            for (Object form : forms) {
+                if (form == NEWLINE) {
+                    stringWriter.append(NEWLINE);
+                } else {
+                    printFormToWriter.print(form, stringWriter);
+                }
+            }
         } catch (Throwable ex) {
             ex.printStackTrace(new PrintWriter(stringWriter));
         } finally {

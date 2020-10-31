@@ -337,7 +337,7 @@ public class MainFrame extends JFrame {
                 input.autosaver.save();
                 input.requestFocusInWindow();
                 Object result = Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename);
-                console.print(result, printFormToWriter);
+                console.print(printFormToWriter, result);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
@@ -356,9 +356,9 @@ public class MainFrame extends JFrame {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
-            console.print(form, "\n\n");
+            console.print(form, Console.NEWLINE, Console.NEWLINE);
             Object result = Clojure.isNamespaceForm(form) ? null : Compiler.eval(form, false);
-            console.print(result, printFormToWriter);
+            console.print(printFormToWriter, result);
         });
     }
 
