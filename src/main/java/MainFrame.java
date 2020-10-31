@@ -337,7 +337,7 @@ public class MainFrame extends JFrame {
                 input.autosaver.save();
                 input.requestFocusInWindow();
                 Object result = Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename);
-                console.print(printFormToWriter, result);
+                printResultValueAndType(printFormToWriter, result);
                 updateNamespaces();
             } catch (Compiler.CompilerException ex) {
                 ex.getCause().printStackTrace(console.printWriter);
@@ -352,13 +352,21 @@ public class MainFrame extends JFrame {
         });
     }
 
+    private void printResultValueAndType(PrintFormToWriter printFormToWriter, Object result) {
+        if (result == null) {
+            console.print(printFormToWriter, result);
+        } else {
+            console.print(printFormToWriter, result, Console.NEWLINE, result.getClass());
+        }
+    }
+
     private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
             input.autosaver.save();
             Object form = evaluateNamespaceFormsStartingBeforeCursor();
             console.print(form, Console.NEWLINE, Console.NEWLINE);
             Object result = Clojure.isNamespaceForm(form) ? null : Compiler.eval(form, false);
-            console.print(printFormToWriter, result);
+            printResultValueAndType(printFormToWriter, result);
         });
     }
 
