@@ -1,4 +1,5 @@
 import clojure.lang.Compiler;
+import clojure.lang.IPersistentMap;
 import clojure.lang.RT;
 import clojure.lang.Var;
 import freditor.FreditorUI;
@@ -16,13 +17,15 @@ public class Console {
 
     private final JTabbedPane tabs;
     private final FreditorUI output;
+    private final Editor input;
 
     private final FreditorWriter freditorWriter;
     public final PrintWriter printWriter;
 
-    public Console(JTabbedPane tabs, FreditorUI output, String sourcePath, String sourceName) {
+    public Console(JTabbedPane tabs, FreditorUI output, Editor input, String sourcePath, String sourceName) {
         this.tabs = tabs;
         this.output = output;
+        this.input = input;
 
         freditorWriter = new FreditorWriter(output);
         printWriter = new PrintWriter(freditorWriter);
@@ -41,13 +44,24 @@ public class Console {
         };
         Var.pushThreadBindings(RT.map(RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
+            input.autosaver.save();
             body.run();
-        } catch (Throwable ex) {
+        } catch (Compiler.CompilerException ex) {
             Throwable cause = ex.getCause();
-            if (cause == null) {
-                cause = ex;
-            }
             cause.printStackTrace(printWriter);
+            StackTraceElement[] stackTrace = cause.getStackTrace();
+            for (StackTraceElement element : stackTrace) {
+                if (input.autosaver.filename.equals(element.getFileName())) {
+                    int line = element.getLineNumber();
+                    input.setCursorTo(line - 1, 0);
+                    return;
+                }
+            }
+            if (ex.line > 0) {
+                IPersistentMap data = ex.getData();
+                Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
+                input.setCursorTo(ex.line - 1, column - 1);
+            }
         } finally {
             Var.popThreadBindings();
         }

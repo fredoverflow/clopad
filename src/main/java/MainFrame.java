@@ -8,11 +8,13 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
@@ -82,7 +84,7 @@ public class MainFrame extends JFrame {
         split.setResizeWeight(1.0);
         add(split);
 
-        console = new Console(tabs, output, input.autosaver.pathname, input.autosaver.filename);
+        console = new Console(tabs, output, input, input.autosaver.pathname, input.autosaver.filename);
         addListeners();
         boringStuff();
     }
@@ -187,9 +189,10 @@ public class MainFrame extends JFrame {
 
     private void printHelpInCurrentNamespace(String lexeme) {
         console.run(() -> {
-            evaluateNamespaceFormsStartingBeforeCursor();
-            Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
-            printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
+            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+                Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
+                printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
+            });
         });
     }
 
@@ -314,7 +317,7 @@ public class MainFrame extends JFrame {
         StringWriter stringWriter = new StringWriter();
         try {
             printFormToWriter.print(form, stringWriter);
-        } catch (Throwable ex) {
+        } catch (IOException ex) {
             ex.printStackTrace(new PrintWriter(stringWriter));
         } finally {
             info.loadFromString(stringWriter.toString());
@@ -324,31 +327,19 @@ public class MainFrame extends JFrame {
 
     private void macroexpandFormAtCursor(IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(() -> {
-            input.autosaver.save();
-            Object form = evaluateNamespaceFormsStartingBeforeCursor();
-            Object expansion = macroexpand.invoke(form);
-            printForm("macro expansion", expansion, printFormToWriter);
+            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+                Object expansion = macroexpand.invoke(formAtCursor);
+                printForm("macro expansion", expansion, printFormToWriter);
+            });
         });
     }
 
     private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
-            try {
-                input.autosaver.save();
-                input.requestFocusInWindow();
-                Object result = Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename);
-                printResultValueAndType(printFormToWriter, result);
+            Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename, result -> {
                 updateNamespaces();
-            } catch (Compiler.CompilerException ex) {
-                ex.getCause().printStackTrace(console.printWriter);
-                if (ex.line > 0) {
-                    String message = ex.getMessage();
-                    int colon = message.lastIndexOf(':');
-                    int paren = message.lastIndexOf(')');
-                    int column = Integer.parseInt(message.substring(colon + 1, paren));
-                    input.setCursorTo(ex.line - 1, column - 1);
-                }
-            }
+                printResultValueAndType(printFormToWriter, result);
+            });
         });
     }
 
@@ -362,16 +353,17 @@ public class MainFrame extends JFrame {
 
     private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
         console.run(() -> {
-            input.autosaver.save();
-            Object form = evaluateNamespaceFormsStartingBeforeCursor();
-            console.print(form, Console.NEWLINE, Console.NEWLINE);
-            Object result = Clojure.isNamespaceForm(form) ? null : Compiler.eval(form, false);
-            printResultValueAndType(printFormToWriter, result);
+            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+                console.print(formAtCursor, Console.NEWLINE, Console.NEWLINE);
+                Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
+                printResultValueAndType(printFormToWriter, result);
+            });
         });
     }
 
-    private Object evaluateNamespaceFormsStartingBeforeCursor() {
-        return Clojure.evaluateNamespaceFormsStartingBefore(input.getText(), 1 + input.row(), 1 + input.column(), this::updateNamespaces);
+    private void evaluateNamespaceFormsBeforeCursor(Consumer<Object> formContinuation) {
+        Clojure.evaluateNamespaceFormsBefore(input.getText(), input.autosaver.pathname, input.autosaver.filename,
+                1 + input.row(), 1 + input.column(), this::updateNamespaces, formContinuation);
     }
 
     private void boringStuff() {

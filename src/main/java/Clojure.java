@@ -4,6 +4,7 @@ import clojure.lang.*;
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.StringReader;
+import java.util.function.Consumer;
 
 import static clojure.lang.Compiler.*;
 
@@ -37,14 +38,43 @@ public class Clojure {
         sourceFn = Var.find(Symbol.create("clojure.repl", "source-fn"));
     }
 
-    public static Object loadFromScratch(String text, String pathname, String filename) {
+    public static void loadFromScratch(String text, String pathname, String filename,
+                                       Consumer<Object> resultContinuation) {
+        Object[] result = new Object[1];
+        feedFormsBefore(text, pathname, filename, Integer.MAX_VALUE, Integer.MAX_VALUE, form -> {
+            if (isNamespaceForm(form)) {
+                Namespace.remove((Symbol) ((PersistentList) form).next().first());
+            }
+            result[0] = Compiler.eval(form, false);
+        }, formAtCursor -> {
+            resultContinuation.accept(result[0]);
+        });
+    }
+
+    public static boolean isNamespaceForm(Object form) {
+        return form instanceof PersistentList && ((PersistentList) form).first().equals(ns);
+    }
+
+    public static void evaluateNamespaceFormsBefore(String text, String pathname, String filename,
+                                                    int row, int column,
+                                                    Runnable updateNamespaces,
+                                                    Consumer<Object> formContinuation) {
+        feedFormsBefore(text, pathname, filename, row, column, form -> {
+            if (isNamespaceForm(form)) {
+                Compiler.eval(form, false);
+                updateNamespaces.run();
+            }
+        }, formContinuation);
+    }
+
+    private static void feedFormsBefore(String text, String pathname, String filename,
+                                        int row, int column,
+                                        Consumer<Object> formConsumer,
+                                        Consumer<Object> formContinuation) {
         LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
+        int lineBefore = 1;
+        int columnBefore = 1;
 
-        skipWhitespace(reader);
-        int lineBefore = reader.getLineNumber();
-        int columnBefore = reader.getColumnNumber();
-
-        Object result = null;
         Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
                 SOURCE_PATH, pathname,
                 SOURCE, filename,
@@ -58,18 +88,15 @@ public class Clojure {
                 warnOnReflection, warnOnReflection.deref(),
                 RT.DATA_READERS, RT.DATA_READERS.deref()));
         try {
-            Object EOF = new Object();
-            Object form;
-            while ((form = LispReader.read(reader, false, EOF, false, null)) != EOF) {
-                if (isNamespaceForm(form)) {
-                    Namespace.remove((Symbol) ((PersistentList) form).next().first());
-                }
-                result = Compiler.eval(form, false);
-
-                skipWhitespace(reader);
+            Object form = null;
+            long rowColumn = combine(row, column);
+            while (skipWhitespace(reader) != -1 && combine(reader.getLineNumber(), reader.getColumnNumber()) <= rowColumn) {
                 lineBefore = reader.getLineNumber();
                 columnBefore = reader.getColumnNumber();
+                form = LispReader.read(reader, false, null, false, null);
+                formConsumer.accept(form);
             }
+            formContinuation.accept(form);
         } catch (LispReader.ReaderException ex) {
             throw new CompilerException(pathname, ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
         } catch (CompilerException ex) {
@@ -79,7 +106,10 @@ public class Clojure {
         } finally {
             Var.popThreadBindings();
         }
-        return result;
+    }
+
+    private static long combine(int hi, int lo) {
+        return (long) hi << 32 | lo;
     }
 
     private static int skipWhitespace(PushbackReader reader) {
@@ -95,27 +125,5 @@ public class Clojure {
             ex.printStackTrace();
         }
         return ch;
-    }
-
-    public static boolean isNamespaceForm(Object form) {
-        return form instanceof PersistentList && ((PersistentList) form).first().equals(ns);
-    }
-
-    public static Object evaluateNamespaceFormsStartingBefore(String text, int row, int column, Runnable updateNamespaces) {
-        Object form = null;
-        LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
-        long rowColumn = combine(row, column);
-        while (skipWhitespace(reader) != -1 && combine(reader.getLineNumber(), reader.getColumnNumber()) <= rowColumn) {
-            form = LispReader.read(reader, false, null, false, null);
-            if (isNamespaceForm(form)) {
-                Compiler.eval(form, false);
-                updateNamespaces.run();
-            }
-        }
-        return form;
-    }
-
-    private static long combine(int hi, int lo) {
-        return (long) hi << 32 | lo;
     }
 }
