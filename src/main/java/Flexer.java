@@ -104,4 +104,13 @@ public class Flexer extends freditor.Flexer {
     private static final ChampMap<FlexerState, Boolean> allowers = ChampMap.of(
             END, true, NEWLINE, true, SPACE_HEAD, true, SPACE_TAIL, true, COMMENT_HEAD, true,
             CLOSING_PAREN, true, CLOSING_BRACKET, true, CLOSING_BRACE, true);
+
+    @Override
+    public boolean arePartners(FlexerState opening, FlexerState closing) {
+        if (opening == OPENING_PAREN) return (closing == CLOSING_PAREN);
+        if (opening == OPENING_BRACKET) return (closing == CLOSING_BRACKET);
+        if (opening == OPENING_BRACE) return (closing == CLOSING_BRACE);
+        if (opening == STRING_LITERAL_HEAD) return (closing == STRING_LITERAL_END);
+        return false;
+    }
 }
