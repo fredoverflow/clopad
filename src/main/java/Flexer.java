@@ -86,24 +86,20 @@ public class Flexer extends freditor.Flexer {
 
     @Override
     public boolean preventInsertion(FlexerState nextState) {
-        return insertionPreventers.get(nextState) != null;
+        return nextState == CLOSING_PAREN
+                || nextState == CLOSING_BRACKET
+                || nextState == CLOSING_BRACE
+                || nextState == STRING_LITERAL_END;
     }
-
-    private static final ChampMap<FlexerState, Boolean> insertionPreventers = ChampMap.of(
-            STRING_LITERAL_END, true, CLOSING_PAREN, true, CLOSING_BRACKET, true, CLOSING_BRACE, true);
 
     @Override
     public String synthesizeOnInsert(FlexerState state, FlexerState nextState) {
-        String synth = synthesizers.get(state);
-        return synth != null && allowers.get(nextState) != null ? synth : "";
+        if (state == OPENING_PAREN) return ")";
+        if (state == OPENING_BRACKET) return "]";
+        if (state == OPENING_BRACE) return "}";
+        if (state == STRING_LITERAL_HEAD) return "\"";
+        return "";
     }
-
-    private static final ChampMap<FlexerState, String> synthesizers = ChampMap.of(
-            STRING_LITERAL_HEAD, "\"", OPENING_PAREN, ")", OPENING_BRACKET, "]", OPENING_BRACE, "}");
-
-    private static final ChampMap<FlexerState, Boolean> allowers = ChampMap.of(
-            END, true, NEWLINE, true, SPACE_HEAD, true, SPACE_TAIL, true, COMMENT_HEAD, true,
-            CLOSING_PAREN, true, CLOSING_BRACKET, true, CLOSING_BRACE, true);
 
     @Override
     public boolean arePartners(FlexerState opening, FlexerState closing) {
