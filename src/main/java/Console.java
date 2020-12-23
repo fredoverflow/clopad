@@ -1,10 +1,9 @@
 import clojure.lang.Compiler;
-import clojure.lang.IPersistentMap;
-import clojure.lang.RT;
-import clojure.lang.Var;
+import clojure.lang.*;
 import freditor.FreditorUI;
 
 import javax.swing.*;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
@@ -81,8 +80,8 @@ public class Console {
                     printFormToWriter.print(form, stringWriter);
                 }
             }
-        } catch (Throwable ex) {
-            ex.printStackTrace(new PrintWriter(stringWriter));
+        } catch (IOException ex) {
+            throw Util.sneakyThrow(ex);
         } finally {
             printWriter.append(stringWriter.toString());
         }

@@ -122,7 +122,7 @@ public class Clojure {
                 reader.unread(ch);
             }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            throw Util.sneakyThrow(ex);
         }
         return ch;
     }
