@@ -15,12 +15,15 @@ import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 
 public class MainFrame extends JFrame {
     private Editor input;
+    private final Pattern userLocation;
     private FreditorUI output;
     private HashMap<Symbol, FreditorUI_symbol> infos;
     private JTabbedPane tabs;
@@ -34,6 +37,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         input = new Editor();
+        userLocation = Pattern.compile(input.autosaver.filename + ":(\\d+)");
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 8);
         infos = new HashMap<>();
 
@@ -189,10 +193,17 @@ public class MainFrame extends JFrame {
 
     private void printHelpInCurrentNamespace(String lexeme) {
         console.run(() -> {
-            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
-                Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
-                printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
-            });
+            Matcher matcher = userLocation.matcher(lexeme);
+            if (matcher.matches()) {
+                int line = Integer.parseInt(matcher.group(1));
+                input.setCursorTo(line - 1, 0);
+                SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
+            } else {
+                evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+                    Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
+                    printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
+                });
+            }
         });
     }
 
