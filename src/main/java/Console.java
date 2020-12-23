@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 
 public class Console {
     // The redundant new String(original) is necessary here because
@@ -46,17 +47,21 @@ public class Console {
             input.autosaver.save();
             body.run();
         } catch (Compiler.CompilerException ex) {
+            printWriter.println();
             Throwable cause = ex.getCause();
-            cause.printStackTrace(printWriter);
             StackTraceElement[] stackTrace = cause.getStackTrace();
-            for (StackTraceElement element : stackTrace) {
-                if (input.autosaver.filename.equals(element.getFileName())) {
-                    int line = element.getLineNumber();
-                    input.setCursorTo(line - 1, 0);
-                    return;
+            StackTraceElement[] userElements = Arrays.stream(stackTrace)
+                    .filter(element -> input.autosaver.filename.equals(element.getFileName()))
+                    .toArray(StackTraceElement[]::new);
+            if (userElements.length > 0) {
+                printWriter.println(cause.getMessage());
+                for (StackTraceElement element : userElements) {
+                    printWriter.println(element.toString());
                 }
-            }
-            if (ex.line > 0) {
+                int line = userElements[0].getLineNumber();
+                input.setCursorTo(line - 1, 0);
+            } else if (ex.line > 0) {
+                cause.printStackTrace(printWriter);
                 IPersistentMap data = ex.getData();
                 Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
                 input.setCursorTo(ex.line - 1, column - 1);
