@@ -72,8 +72,6 @@ public class Clojure {
                                         Consumer<Object> formConsumer,
                                         Consumer<Object> formContinuation) {
         LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
-        int lineBefore = 1;
-        int columnBefore = 1;
 
         Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
                 SOURCE_PATH, pathname,
@@ -84,6 +82,8 @@ public class Clojure {
                 NEXT_LOCAL_NUM, 0,
                 RT.READEVAL, RT.T,
                 RT.CURRENT_NS, RT.CURRENT_NS.deref(),
+                LINE, -1,
+                COLUMN, -1,
                 RT.UNCHECKED_MATH, RT.UNCHECKED_MATH.deref(),
                 warnOnReflection, warnOnReflection.deref(),
                 RT.DATA_READERS, RT.DATA_READERS.deref()));
@@ -91,8 +91,8 @@ public class Clojure {
             Object form = null;
             long rowColumn = combine(row, column);
             while (skipWhitespace(reader) != -1 && combine(reader.getLineNumber(), reader.getColumnNumber()) <= rowColumn) {
-                lineBefore = reader.getLineNumber();
-                columnBefore = reader.getColumnNumber();
+                LINE.set(reader.getLineNumber());
+                COLUMN.set(reader.getColumnNumber());
                 form = LispReader.read(reader, false, null, false, null);
                 formConsumer.accept(form);
             }
@@ -102,7 +102,7 @@ public class Clojure {
         } catch (CompilerException ex) {
             throw ex;
         } catch (Throwable ex) {
-            throw new CompilerException(pathname, lineBefore, columnBefore, ex);
+            throw new CompilerException(pathname, (Integer) LINE.deref(), (Integer) COLUMN.deref(), ex);
         } finally {
             Var.popThreadBindings();
         }
