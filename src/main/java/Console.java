@@ -60,11 +60,13 @@ public class Console {
                 }
                 int line = userElements[0].getLineNumber();
                 input.setCursorTo(line - 1, 0);
-            } else if (ex.line > 0) {
+            } else {
                 cause.printStackTrace(printWriter);
-                IPersistentMap data = ex.getData();
-                Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
-                input.setCursorTo(ex.line - 1, column - 1);
+                if (ex.line > 0) {
+                    IPersistentMap data = ex.getData();
+                    Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
+                    input.setCursorTo(ex.line - 1, column - 1);
+                }
             }
         } finally {
             Var.popThreadBindings();
