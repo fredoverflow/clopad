@@ -54,7 +54,7 @@ public class Console {
                     .filter(element -> input.autosaver.filename.equals(element.getFileName()))
                     .toArray(StackTraceElement[]::new);
             if (userElements.length > 0) {
-                printWriter.println(cause.getMessage());
+                printWriter.println(cause);
                 for (StackTraceElement element : userElements) {
                     printWriter.println(element.toString());
                 }
