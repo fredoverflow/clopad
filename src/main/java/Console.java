@@ -56,10 +56,12 @@ public class Console {
             if (userElements.length > 0) {
                 printWriter.println(cause);
                 for (StackTraceElement element : userElements) {
-                    printWriter.println(element.toString());
+                    printWriter.println("\tat " + element);
                 }
                 int line = userElements[0].getLineNumber();
                 input.setCursorTo(line - 1, 0);
+                printWriter.println();
+                cause.printStackTrace(printWriter);
             } else {
                 cause.printStackTrace(printWriter);
                 if (ex.line > 0) {
