@@ -117,6 +117,27 @@ public class MainFrame extends JFrame {
         filter.setBackground(symbols.length > 0 || filter.getText().isEmpty() ? Color.WHITE : Color.RED);
     }
 
+    private static final Pattern NOT_NEWLINE = Pattern.compile("[^\n]");
+
+    private String isolateSelectedForm() {
+        String text = input.getText();
+        if (input.selectionIsEmpty()) return text;
+
+        // For simplicity, assume first form is the namespace form
+        String namespaceForm = Clojure.firstForm(text);
+        int namespaceEnd = namespaceForm.length();
+        int selectionStart = input.selectionStart();
+        if (namespaceEnd <= selectionStart) {
+            String betweenNamespaceAndSelection = text.substring(namespaceEnd, selectionStart);
+            String selection = text.substring(selectionStart, input.selectionEnd());
+            // The whitespace preserves absolute positions for better error messages
+            String whitespace = NOT_NEWLINE.matcher(betweenNamespaceAndSelection).replaceAll(" ");
+            return namespaceForm + whitespace + selection;
+        } else {
+            return namespaceForm;
+        }
+    }
+
     private void addListeners() {
         input.addKeyListener(new KeyAdapter() {
             @Override
@@ -131,11 +152,11 @@ public class MainFrame extends JFrame {
                         break;
 
                     case KeyEvent.VK_F11:
-                        macroexpandFormAtCursor(selectMacroexpand(event), selectPrintFormToWriter(event));
+                        macroexpandFormAtCursor(isolateSelectedForm(), selectMacroexpand(event), selectPrintFormToWriter(event));
                         break;
 
                     case KeyEvent.VK_F12:
-                        evaluateFormAtCursor(selectPrintFormToWriter(event));
+                        evaluateFormAtCursor(isolateSelectedForm(), selectPrintFormToWriter(event));
                         break;
                 }
             }
@@ -199,7 +220,7 @@ public class MainFrame extends JFrame {
                 input.setCursorTo(line - 1, 0);
                 SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
             } else {
-                evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+                evaluateNamespaceFormsBeforeCursor(input.getText(), formAtCursor -> {
                     Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
                     printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
                 });
@@ -336,9 +357,9 @@ public class MainFrame extends JFrame {
         tabs.setSelectedComponent(info);
     }
 
-    private void macroexpandFormAtCursor(IFn macroexpand, PrintFormToWriter printFormToWriter) {
+    private void macroexpandFormAtCursor(String text, IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(() -> {
-            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+            evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
                 Object expansion = macroexpand.invoke(formAtCursor);
                 printForm("macro expansion", expansion, printFormToWriter);
             });
@@ -362,9 +383,9 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void evaluateFormAtCursor(PrintFormToWriter printFormToWriter) {
+    private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
         console.run(() -> {
-            evaluateNamespaceFormsBeforeCursor(formAtCursor -> {
+            evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
                 console.print(formAtCursor, Console.NEWLINE, Console.NEWLINE);
                 Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
                 printResultValueAndType(printFormToWriter, result);
@@ -372,8 +393,8 @@ public class MainFrame extends JFrame {
         });
     }
 
-    private void evaluateNamespaceFormsBeforeCursor(Consumer<Object> formContinuation) {
-        Clojure.evaluateNamespaceFormsBefore(input.getText(), input.autosaver.pathname, input.autosaver.filename,
+    private void evaluateNamespaceFormsBeforeCursor(String text, Consumer<Object> formContinuation) {
+        Clojure.evaluateNamespaceFormsBefore(text, input.autosaver.pathname, input.autosaver.filename,
                 1 + input.row(), 1 + input.column(), this::updateNamespaces, formContinuation);
     }
 

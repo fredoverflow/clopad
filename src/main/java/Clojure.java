@@ -38,6 +38,13 @@ public class Clojure {
         sourceFn = Var.find(Symbol.create("clojure.repl", "source-fn"));
     }
 
+    public static String firstForm(String text) {
+        LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
+        reader.captureString();
+        LispReader.read(reader, false, null, false, null);
+        return reader.getString();
+    }
+
     public static void loadFromScratch(String text, String pathname, String filename,
                                        Consumer<Object> resultContinuation) {
         Object[] result = new Object[1];
