@@ -14,6 +14,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,7 +38,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         input = new Editor();
-        userLocation = Pattern.compile(input.autosaver.filename + ":(\\d+)");
+        userLocation = Pattern.compile(".*" + input.autosaver.filename + ":(\\d+)(?::(\\d+))?");
         output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 8);
         infos = new HashMap<>();
 
@@ -217,8 +218,9 @@ public class MainFrame extends JFrame {
             Matcher matcher = userLocation.matcher(lexeme);
             if (matcher.matches()) {
                 int line = Integer.parseInt(matcher.group(1));
-                input.setCursorTo(line - 1, 0);
-                SwingUtilities.invokeLater(() -> input.requestFocusInWindow());
+                int column = Optional.ofNullable(matcher.group(2)).map(Integer::parseInt).orElse(1);
+                input.setCursorTo(line - 1, column - 1);
+                SwingUtilities.invokeLater(input::requestFocusInWindow);
             } else {
                 evaluateNamespaceFormsBeforeCursor(input.getText(), formAtCursor -> {
                     Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
