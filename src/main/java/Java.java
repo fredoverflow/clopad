@@ -1,5 +1,8 @@
 import java.lang.reflect.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.function.IntPredicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,18 +29,19 @@ public class Java {
     }
 
     public static String allInterfaces(Class<?> clazz) {
-        LinkedHashSet<Class<?>> result = new LinkedHashSet<>();
+        HashSet<Class<?>> result = new HashSet<>();
         for (Class<?> ancestor : classChainList(clazz)) {
             insertAllInterfaces(ancestor, result);
         }
         if (result.isEmpty()) return "";
 
         return result.stream()
+                .sorted(Comparator.comparing(Class::getSimpleName))
                 .map(Java::shrinkLangPackages)
                 .collect(Collectors.joining(", ", clazz.isInterface() ? "extends* " : "implements* ", "\n"));
     }
 
-    private static void insertAllInterfaces(Class<?> clazz, LinkedHashSet<Class<?>> result) {
+    private static void insertAllInterfaces(Class<?> clazz, HashSet<Class<?>> result) {
         for (Class<?> directInterface : clazz.getInterfaces()) {
             if (result.add(directInterface)) {
                 insertAllInterfaces(directInterface, result);
