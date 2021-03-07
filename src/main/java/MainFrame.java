@@ -228,7 +228,8 @@ public class MainFrame extends JFrame {
         });
     }
 
-    private void printHelpFromHelp(String lexeme) {
+    private void printHelpFromHelp(String shrunkLexeme) {
+        String lexeme = Java.expandClojureLangPackage(shrunkLexeme);
         console.run(() -> {
             FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
             String selectedSymbolNamespace = selected.symbol.getNamespace();

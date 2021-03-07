@@ -12,7 +12,7 @@ public class Java {
         if (result.size() < 2) return "";
 
         return result.stream()
-                .map(Java::implicitJavaLang)
+                .map(Java::shrinkLangPackages)
                 .collect(Collectors.joining(" -> ", "", "\n"));
     }
 
@@ -33,7 +33,7 @@ public class Java {
         if (result.isEmpty()) return "";
 
         return result.stream()
-                .map(Java::implicitJavaLang)
+                .map(Java::shrinkLangPackages)
                 .collect(Collectors.joining(", ", clazz.isInterface() ? "extends* " : "implements* ", "\n"));
     }
 
@@ -56,7 +56,7 @@ public class Java {
         return textBlock(suffix, Arrays.stream(clazz.getFields())
                 .filter(method -> modifiersFilter.test(method.getModifiers()))
                 .sorted(Comparator.comparing(Field::getName))
-                .map(field -> field.getName() + ": " + implicitJavaLang(field.getType())));
+                .map(field -> field.getName() + ": " + shrinkLangPackages(field.getType())));
     }
 
     public static String sortedMethods(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {
@@ -66,7 +66,7 @@ public class Java {
         }
         return textBlock(suffix, stream.filter(method -> modifiersFilter.test(method.getModifiers()))
                 .sorted(Comparator.comparing(Method::getName).thenComparing(Method::getParameterCount))
-                .map(method -> method.getName() + parameters(method) + ": " + implicitJavaLang(method.getReturnType()) + exceptionTypes(method)));
+                .map(method -> method.getName() + parameters(method) + ": " + shrinkLangPackages(method.getReturnType()) + exceptionTypes(method)));
     }
 
     private static final HashSet<Method> rootMethods = new HashSet<>(Arrays.asList(Object.class.getDeclaredMethods()));
@@ -79,7 +79,7 @@ public class Java {
 
     private static String parameter(Parameter parameter) {
         String name = parameter.getName();
-        String type = implicitJavaLang(parameter.getType());
+        String type = shrinkLangPackages(parameter.getType());
         if (SYNTHESIZED_PARAMETER.matcher(name).matches()) {
             return type;
         } else {
@@ -92,19 +92,31 @@ public class Java {
         if (exceptionTypes.length == 0) return "";
 
         return Arrays.stream(exceptionTypes)
-                .map(Java::implicitJavaLang)
+                .map(Java::shrinkLangPackages)
                 .collect(Collectors.joining(", ", " (", ")"));
     }
 
     private static final Pattern SYNTHESIZED_PARAMETER = Pattern.compile("arg\\d+");
 
-    private static String implicitJavaLang(Class<?> type) {
+    private static String shrinkLangPackages(Class<?> type) {
         String name = type.getTypeName();
         Matcher matcher = JAVA_LANG.matcher(name);
-        return matcher.matches() ? matcher.group(1) : name;
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        matcher = CLOJURE_LANG.matcher(name);
+        if (matcher.matches()) {
+            return '©' + matcher.group(1);
+        }
+        return name;
     }
 
-    private static final Pattern JAVA_LANG = Pattern.compile("java\\.lang\\.([^.]+)");
+    private static final Pattern JAVA_LANG = Pattern.compile("java[.]lang[.]([^.]+)");
+    private static final Pattern CLOJURE_LANG = Pattern.compile("clojure[.]lang[.](.+)");
+
+    public static String expandClojureLangPackage(String lexeme) {
+        return (lexeme.charAt(0) == '©') ? "clojure.lang." + lexeme.substring(1) : lexeme;
+    }
 
     private static String textBlock(String suffix, Stream<String> stream) {
         StringBuilder builder = new StringBuilder();
