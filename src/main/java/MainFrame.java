@@ -1,7 +1,7 @@
 import clojure.lang.Compiler;
 import clojure.lang.*;
 import freditor.FreditorUI;
-import freditor.Front;
+import freditor.Fronts;
 import freditor.LineNumbers;
 
 import javax.swing.*;
@@ -51,14 +51,14 @@ public class MainFrame extends JFrame {
         input.setComponentToRepaint(inputWithLineNumbers);
 
         namespaces = new JComboBox<>();
-        namespaces.setFont(Front.sansSerif);
+        namespaces.setFont(Fronts.sansSerif);
 
         names = new JList<>();
-        names.setFont(Front.sansSerif);
+        names.setFont(Fronts.sansSerif);
         names.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         filter = new JTextField();
-        filter.setFont(Front.sansSerif);
+        filter.setFont(Fronts.sansSerif);
 
         JPanel namespaceExplorer = new JPanel(new BorderLayout());
         namespaceExplorer.add(namespaces, BorderLayout.NORTH);
@@ -195,7 +195,7 @@ public class MainFrame extends JFrame {
 
         split.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, event -> {
             SwingUtilities.invokeLater(() -> {
-                final int frontHeight = Front.front.height;
+                final int frontHeight = Fronts.front.height;
                 int rest = tabs.getSelectedComponent().getHeight() % frontHeight;
                 if (rest > 0) {
                     if ((int) event.getNewValue() < (int) event.getOldValue()) {
