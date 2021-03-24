@@ -37,7 +37,7 @@ public class Console {
         Clojure.printLength.bindRoot(PRINT_LENGTH);
     }
 
-    public void run(Runnable body) {
+    public void run(boolean setCursor, Runnable body) {
         freditorWriter.beforeFirstWrite = () -> {
             output.loadFromString("");
             tabs.setSelectedComponent(output);
@@ -58,13 +58,15 @@ public class Console {
                 for (StackTraceElement element : userElements) {
                     printWriter.println("\tat " + element);
                 }
-                int line = userElements[0].getLineNumber();
-                input.setCursorTo(line - 1, 0);
+                if (setCursor) {
+                    int line = userElements[0].getLineNumber();
+                    input.setCursorTo(line - 1, 0);
+                }
                 printWriter.println();
                 cause.printStackTrace(printWriter);
             } else {
                 cause.printStackTrace(printWriter);
-                if (ex.line > 0) {
+                if (setCursor && ex.line > 0) {
                     IPersistentMap data = ex.getData();
                     Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
                     input.setCursorTo(ex.line - 1, column - 1);

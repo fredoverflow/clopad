@@ -214,7 +214,7 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelpInCurrentNamespace(String lexeme) {
-        console.run(() -> {
+        console.run(false, () -> {
             Matcher matcher = userLocation.matcher(lexeme);
             if (matcher.matches()) {
                 int line = Integer.parseInt(matcher.group(1));
@@ -232,7 +232,7 @@ public class MainFrame extends JFrame {
 
     private void printHelpFromHelp(String shrunkLexeme) {
         String lexeme = Java.expandClojureLangPackage(shrunkLexeme);
-        console.run(() -> {
+        console.run(false, () -> {
             FreditorUI_symbol selected = (FreditorUI_symbol) tabs.getSelectedComponent();
             String selectedSymbolNamespace = selected.symbol.getNamespace();
             if (selectedSymbolNamespace != null) {
@@ -262,7 +262,7 @@ public class MainFrame extends JFrame {
         Symbol symbol = names.getSelectedValue();
         if (symbol == null) return;
 
-        console.run(() -> printHelp((Namespace) namespace, symbol));
+        console.run(false, () -> printHelp((Namespace) namespace, symbol));
         input.requestFocusInWindow();
     }
 
@@ -361,7 +361,7 @@ public class MainFrame extends JFrame {
     }
 
     private void macroexpandFormAtCursor(String text, IFn macroexpand, PrintFormToWriter printFormToWriter) {
-        console.run(() -> {
+        console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
                 Object expansion = macroexpand.invoke(formAtCursor);
                 printForm("macro expansion", expansion, printFormToWriter);
@@ -370,7 +370,7 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
-        console.run(() -> {
+        console.run(true, () -> {
             Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename, result -> {
                 updateNamespaces();
                 printResultValueAndType(printFormToWriter, result);
@@ -387,7 +387,7 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
-        console.run(() -> {
+        console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
                 console.print(formAtCursor, Console.NEWLINE, Console.NEWLINE);
                 Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
