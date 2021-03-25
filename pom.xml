@@ -13,6 +13,13 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>clojars.org</id>
+            <url>https://repo.clojars.org</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>fredoverflow</groupId>
@@ -31,6 +38,20 @@
             <artifactId>junit</artifactId>
             <version>4.13.1</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>clj-http</groupId>
+            <artifactId>clj-http</artifactId>
+            <version>3.12.1</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>cheshire</groupId>
+            <artifactId>cheshire</artifactId>
+            <version>5.10.0</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
