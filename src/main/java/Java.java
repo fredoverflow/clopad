@@ -28,17 +28,26 @@ public class Java {
         return result;
     }
 
-    public static String allInterfaces(Class<?> clazz) {
+    public static String allInterfaces(Class<?> clazz, int columns) {
         HashSet<Class<?>> result = new HashSet<>();
         for (Class<?> ancestor : classChainList(clazz)) {
             insertAllInterfaces(ancestor, result);
         }
         if (result.isEmpty()) return "";
 
-        return result.stream()
+        String prefix;
+        String indent;
+        if (clazz.isInterface()) {
+            prefix = "extends* ";
+            indent = "         ";
+        } else {
+            prefix = "implements* ";
+            indent = "            ";
+        }
+        Stream<String> stream = result.stream()
                 .sorted(Comparator.comparing(Class::getSimpleName))
-                .map(Java::shrinkLangPackages)
-                .collect(Collectors.joining(", ", clazz.isInterface() ? "extends* " : "implements* ", "\n"));
+                .map(Java::shrinkLangPackages);
+        return join2D(columns, stream::iterator, prefix, ", ", indent, "\n");
     }
 
     private static void insertAllInterfaces(Class<?> clazz, HashSet<Class<?>> result) {
@@ -47,6 +56,24 @@ public class Java {
                 insertAllInterfaces(directInterface, result);
             }
         }
+    }
+
+    private static String join2D(int columns, Iterable<String> strings, String prefix, String delimiter, String indent, String suffix) {
+        StringBuilder builder = new StringBuilder(prefix);
+        int width = prefix.length();
+        String delim = "";
+        for (String s : strings) {
+            builder.append(delim);
+            width += delim.length();
+            if (width + s.length() > columns) {
+                builder.append("\n").append(indent);
+                width = indent.length();
+            }
+            builder.append(s);
+            width += s.length();
+            delim = delimiter;
+        }
+        return builder.append(suffix).toString();
     }
 
     public static String sortedConstructors(Class<?> clazz, IntPredicate modifiersFilter, String suffix) {

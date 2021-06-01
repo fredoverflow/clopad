@@ -305,7 +305,7 @@ public class MainFrame extends JFrame {
     }
 
     private void printHelpMembers(Symbol symbol, Class<?> clazz) {
-        String header = Java.classChain(clazz) + Java.allInterfaces(clazz);
+        String header = Java.classChain(clazz) + Java.allInterfaces(clazz, output.visibleColumns());
         if (!header.isEmpty()) {
             header += "\n";
         }
