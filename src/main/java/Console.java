@@ -9,9 +9,7 @@ import java.io.StringWriter;
 import java.util.Arrays;
 
 public class Console {
-    // The redundant new String(original) is necessary here because
-    // NEWLINE must be distinct from interned Clojure string literals.
-    static final String NEWLINE = new String("\n");
+    public static final Raw NEWLINE = new Raw("\n");
 
     private static final int PRINT_LENGTH = 100;
 
@@ -85,8 +83,8 @@ public class Console {
         StringWriter stringWriter = new StringWriter();
         try {
             for (Object form : forms) {
-                if (form == NEWLINE) {
-                    stringWriter.append(NEWLINE);
+                if (form instanceof Raw) {
+                    stringWriter.append(form.toString());
                 } else {
                     printFormToWriter.print(form, stringWriter);
                 }
