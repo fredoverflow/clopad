@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Modifier;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
@@ -380,10 +382,16 @@ public class MainFrame extends JFrame {
 
     private void printResultValueAndType(PrintFormToWriter printFormToWriter, Object result) {
         if (result == null) {
-            console.print(printFormToWriter, result);
+            console.print(printFormToWriter, null, Console.NEWLINE, timestamp());
         } else {
-            console.print(printFormToWriter, result, Console.NEWLINE, result.getClass());
+            console.print(printFormToWriter, result, Console.NEWLINE, result.getClass(), Console.NEWLINE, timestamp());
         }
+    }
+
+    private static final DateTimeFormatter _HH_mm_ss_SSS = DateTimeFormatter.ofPattern(";HH:mm:ss.SSS");
+
+    private static Raw timestamp() {
+        return new Raw(LocalTime.now().format(_HH_mm_ss_SSS));
     }
 
     private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
