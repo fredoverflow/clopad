@@ -9,8 +9,6 @@ import java.io.StringWriter;
 import java.util.Arrays;
 
 public class Console {
-    public static final Raw NEWLINE = new Raw("\n");
-
     private static final int PRINT_LENGTH = 100;
 
     private final JTabbedPane tabs;
@@ -75,20 +73,12 @@ public class Console {
         }
     }
 
-    public void print(Object... forms) {
-        print(RT::print, forms);
-    }
-
-    public void print(PrintFormToWriter printFormToWriter, Object... forms) {
+    public void print(PrintFormToWriter printFormToWriter, String prefix, Object form, String suffix) {
         StringWriter stringWriter = new StringWriter();
         try {
-            for (Object form : forms) {
-                if (form instanceof Raw) {
-                    stringWriter.append(form.toString());
-                } else {
-                    printFormToWriter.print(form, stringWriter);
-                }
-            }
+            stringWriter.append(prefix);
+            printFormToWriter.print(form, stringWriter);
+            stringWriter.append(suffix);
         } catch (IOException ex) {
             throw Util.sneakyThrow(ex);
         } finally {

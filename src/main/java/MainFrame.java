@@ -8,9 +8,6 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -41,7 +38,7 @@ public class MainFrame extends JFrame {
     public MainFrame() {
         input = new Editor();
         userLocation = Pattern.compile(".*" + input.autosaver.filename + ":(\\d+)(?::(\\d+))?");
-        output = new FreditorUI(OutputFlexer.instance, ClojureIndenter.instance, 80, 8);
+        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 8);
         infos = new HashMap<>();
 
         setTitle(input.autosaver.pathname);
@@ -348,25 +345,12 @@ public class MainFrame extends JFrame {
         return info;
     }
 
-    private void printForm(String title, Object form, PrintFormToWriter printFormToWriter) {
-        Symbol symbol = Symbol.create(RT.CURRENT_NS.deref().toString(), title);
-        FreditorUI_symbol info = infos.computeIfAbsent(symbol, this::newInfo);
-        StringWriter stringWriter = new StringWriter();
-        try {
-            printFormToWriter.print(form, stringWriter);
-        } catch (IOException ex) {
-            ex.printStackTrace(new PrintWriter(stringWriter));
-        } finally {
-            info.loadFromString(stringWriter.toString());
-        }
-        tabs.setSelectedComponent(info);
-    }
-
     private void macroexpandFormAtCursor(String text, IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
+                console.print(RT::print, "¤", formAtCursor, "\n\n");
                 Object expansion = macroexpand.invoke(formAtCursor);
-                printForm("macro expansion", expansion, printFormToWriter);
+                printResultValueAndType(printFormToWriter, expansion);
             });
         });
     }
@@ -382,22 +366,22 @@ public class MainFrame extends JFrame {
 
     private void printResultValueAndType(PrintFormToWriter printFormToWriter, Object result) {
         if (result == null) {
-            console.print(printFormToWriter, null, Console.NEWLINE, timestamp());
+            console.print(printFormToWriter, "", null, "\n" + timestamp());
         } else {
-            console.print(printFormToWriter, result, Console.NEWLINE, result.getClass(), Console.NEWLINE, timestamp());
+            console.print(printFormToWriter, "", result, "\n" + result.getClass() + "\n" + timestamp());
         }
     }
 
     private static final DateTimeFormatter _HH_mm_ss_SSS = DateTimeFormatter.ofPattern(";HH:mm:ss.SSS");
 
-    private static Raw timestamp() {
-        return new Raw(LocalTime.now().format(_HH_mm_ss_SSS));
+    private static String timestamp() {
+        return LocalTime.now().format(_HH_mm_ss_SSS);
     }
 
     private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
-                console.print(formAtCursor, Console.NEWLINE, Console.NEWLINE);
+                console.print(RT::print, "", formAtCursor, "\n\n");
                 Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
                 printResultValueAndType(printFormToWriter, result);
             });
