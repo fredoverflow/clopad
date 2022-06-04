@@ -267,7 +267,7 @@ public class MainFrame extends JFrame {
 
     private void printHelp(Namespace namespace, Symbol symbol) {
         String name = symbol.toString();
-        if (name.endsWith(".")) {
+        if (name.endsWith(".") && !name.startsWith(".")) {
             printHelpConstructor(namespace, Symbol.create(name.substring(0, name.length() - 1)));
         } else {
             printHelpNonConstructor(namespace, symbol);
