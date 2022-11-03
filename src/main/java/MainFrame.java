@@ -5,13 +5,11 @@ import freditor.Fronts;
 import freditor.LineNumbers;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.lang.reflect.Modifier;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -23,63 +21,35 @@ import static java.lang.reflect.Modifier.isStatic;
 
 public class MainFrame extends JFrame {
     private Editor input;
-    private final Pattern userLocation;
+    private NamespaceExplorer namespaceExplorer;
+    private JPanel up;
+
     private FreditorUI output;
     private HashMap<Symbol, FreditorUI_symbol> infos;
     private JTabbedPane tabs;
     private JSplitPane split;
 
-    private JComboBox<Namespace> namespaces;
-    private JList<Symbol> names;
-    private JTextField filter;
-
     private Console console;
+
+    private Pattern userLocation;
 
     public MainFrame() {
         input = new Editor();
-        userLocation = Pattern.compile(".*" + input.autosaver.filename + ":(\\d+)(?::(\\d+))?");
-        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 8);
-        infos = new HashMap<>();
-
-        setTitle(input.autosaver.pathname);
-
         JPanel inputWithLineNumbers = new JPanel();
         inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
         inputWithLineNumbers.add(new LineNumbers(input));
         inputWithLineNumbers.add(input);
         input.setComponentToRepaint(inputWithLineNumbers);
 
-        namespaces = new JComboBox<>();
-        namespaces.setFont(Fronts.sansSerif);
+        namespaceExplorer = new NamespaceExplorer(this::printHelpFromExplorer);
 
-        names = new JList<>();
-        names.setFont(Fronts.sansSerif);
-        names.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        filter = new JTextField();
-        filter.setFont(Fronts.sansSerif);
-
-        JPanel namespaceExplorer = new JPanel(new BorderLayout());
-        namespaceExplorer.add(namespaces, BorderLayout.NORTH);
-        namespaceExplorer.add(new JScrollPane(names), BorderLayout.CENTER);
-        namespaceExplorer.add(filter, BorderLayout.SOUTH);
-
-        JPanel up = new JPanel(new BorderLayout());
+        up = new JPanel(new BorderLayout());
         up.add(inputWithLineNumbers, BorderLayout.CENTER);
         up.add(namespaceExplorer, BorderLayout.EAST);
 
-        filter.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent event) {
-                if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    if (filter.getText().isEmpty()) {
-                        up.remove(namespaceExplorer);
-                        up.revalidate();
-                    }
-                    input.requestFocusInWindow();
-                }
-            }
-        });
+        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 8);
+
+        infos = new HashMap<>();
 
         tabs = new JTabbedPane();
         tabs.addTab("output", output);
@@ -89,32 +59,9 @@ public class MainFrame extends JFrame {
         add(split);
 
         console = new Console(tabs, output, input, input.autosaver.pathname, input.autosaver.filename);
+
         addListeners();
         boringStuff();
-    }
-
-    private void updateNamespaces() {
-        ISeq allNamespaces = Namespace.all();
-        if (RT.count(allNamespaces) != namespaces.getItemCount()) {
-            namespaces.removeAllItems();
-            ISeqSpliterator.<Namespace>stream(allNamespaces)
-                    .sorted(Comparator.comparing(Namespace::toString))
-                    .forEach(namespaces::addItem);
-        }
-    }
-
-    private void filterSymbols() {
-        Namespace namespace = (Namespace) namespaces.getSelectedItem();
-        if (namespace == null) return;
-
-        ISeq interns = RT.keys(Clojure.nsInterns.invoke(namespace.name));
-        Symbol[] symbols = ISeqSpliterator.<Symbol>stream(interns)
-                .filter(symbol -> symbol.getName().contains(filter.getText()))
-                .sorted(Comparator.comparing(Symbol::getName))
-                .toArray(Symbol[]::new);
-        names.setListData(symbols);
-
-        filter.setBackground(symbols.length > 0 || filter.getText().isEmpty() ? Color.WHITE : Color.RED);
     }
 
     private static final Pattern NOT_NEWLINE = Pattern.compile("[^\n]");
@@ -204,12 +151,6 @@ public class MainFrame extends JFrame {
                 }
             });
         });
-
-        namespaces.addItemListener(event -> filterSymbols());
-        updateNamespaces();
-        names.addListSelectionListener(this::printHelpFromExplorer);
-
-        filter.getDocument().addDocumentListener(new DocumentAdapter(event -> filterSymbols()));
     }
 
     private void printHelpInCurrentNamespace(String lexeme) {
@@ -252,16 +193,8 @@ public class MainFrame extends JFrame {
         }
     }
 
-    private void printHelpFromExplorer(ListSelectionEvent event) {
-        if (event.getValueIsAdjusting()) return;
-
-        Object namespace = namespaces.getSelectedItem();
-        if (namespace == null) return;
-
-        Symbol symbol = names.getSelectedValue();
-        if (symbol == null) return;
-
-        console.run(false, () -> printHelp((Namespace) namespace, symbol));
+    public void printHelpFromExplorer(Namespace namespace, Symbol symbol) {
+        console.run(false, () -> printHelp(namespace, symbol));
         input.requestFocusInWindow();
     }
 
@@ -358,7 +291,7 @@ public class MainFrame extends JFrame {
     private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename, result -> {
-                updateNamespaces();
+                namespaceExplorer.updateNamespaces();
                 printResultValueAndType(printFormToWriter, result);
             });
         });
@@ -390,10 +323,12 @@ public class MainFrame extends JFrame {
 
     private void evaluateNamespaceFormsBeforeCursor(String text, Consumer<Object> formContinuation) {
         Clojure.evaluateNamespaceFormsBefore(text, input.autosaver.pathname, input.autosaver.filename,
-                1 + input.row(), 1 + input.column(), this::updateNamespaces, formContinuation);
+                1 + input.row(), 1 + input.column(), namespaceExplorer::updateNamespaces, formContinuation);
     }
 
     private void boringStuff() {
+        userLocation = Pattern.compile(".*" + input.autosaver.filename + ":(\\d+)(?::(\\d+))?");
+        setTitle(input.autosaver.pathname);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
