@@ -3,6 +3,7 @@ import clojure.lang.*;
 import freditor.FreditorUI;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -35,7 +36,11 @@ public class Console {
 
     public void run(boolean setCursor, Runnable body) {
         freditorWriter.beforeFirstWrite = () -> {
-            output.loadFromString("");
+            int position = output.length();
+            EventQueue.invokeLater(() -> {
+                output.scrollBottom(-2);
+                output.setCursorTo(position);
+            });
             tabs.setSelectedComponent(output);
         };
         Var.pushThreadBindings(RT.map(RT.CURRENT_NS, RT.CURRENT_NS.deref()));

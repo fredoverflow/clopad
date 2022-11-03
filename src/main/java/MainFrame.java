@@ -292,6 +292,7 @@ public class MainFrame extends JFrame {
 
     private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
+            output.loadFromString("");
             Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename, result -> {
                 namespaceExplorer.updateNamespaces();
                 printResultValueAndType(printFormToWriter, result);
@@ -301,9 +302,9 @@ public class MainFrame extends JFrame {
 
     private void printResultValueAndType(PrintFormToWriter printFormToWriter, Object result) {
         if (result == null) {
-            console.print(printFormToWriter, "", null, "\n" + timestamp());
+            console.print(printFormToWriter, "", null, "\n" + timestamp() + "\n\n");
         } else {
-            console.print(printFormToWriter, "", result, "\n" + result.getClass() + "\n" + timestamp());
+            console.print(printFormToWriter, "", result, "\n" + result.getClass() + "\n" + timestamp() + "\n\n");
         }
     }
 
