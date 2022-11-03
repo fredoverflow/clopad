@@ -123,7 +123,7 @@ public class MainFrame extends JFrame {
         tabs.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
-                if (event.getButton() != MouseEvent.BUTTON1) {
+                if (event.getButton() == MouseEvent.BUTTON3) {
                     Component selectedComponent = tabs.getSelectedComponent();
                     if (selectedComponent == output) {
                         tabs.removeAll();
