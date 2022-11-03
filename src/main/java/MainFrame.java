@@ -64,6 +64,15 @@ public class MainFrame extends JFrame {
         boringStuff();
     }
 
+    private void toggleNamespaceExplorer() {
+        if (up.getComponentCount() == 2) {
+            up.remove(namespaceExplorer);
+        } else {
+            up.add(namespaceExplorer, BorderLayout.EAST);
+        }
+        up.revalidate();
+    }
+
     private static final Pattern NOT_NEWLINE = Pattern.compile("[^\n]");
 
     private String isolateSelectedForm() {
@@ -91,7 +100,11 @@ public class MainFrame extends JFrame {
             public void keyPressed(KeyEvent event) {
                 switch (event.getKeyCode()) {
                     case KeyEvent.VK_F1:
-                        printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
+                        if (event.isAltDown()) {
+                            toggleNamespaceExplorer();
+                        } else {
+                            printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
+                        }
                         break;
 
                     case KeyEvent.VK_F5:
