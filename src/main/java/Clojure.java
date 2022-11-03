@@ -10,7 +10,8 @@ import static clojure.lang.Compiler.*;
 
 public class Clojure {
     public static final Keyword doc;
-    public static final Symbol ns;
+    public static final Symbol null_ns;
+    public static final Symbol clojure_core_ns;
     public static final Var printLength;
     public static final Var warnOnReflection;
 
@@ -27,7 +28,8 @@ public class Clojure {
         require.invoke(Symbol.create("clojure.walk"));
 
         doc = Keyword.intern("doc");
-        ns = Symbol.create(null, "ns");
+        null_ns = Symbol.create(null, "ns");
+        clojure_core_ns = Symbol.create("clojure.core", "ns");
         printLength = Var.find(Symbol.create("clojure.core", "*print-length*"));
         warnOnReflection = Var.find(Symbol.create("clojure.core", "*warn-on-reflection*"));
 
@@ -59,7 +61,9 @@ public class Clojure {
     }
 
     public static boolean isNamespaceForm(Object form) {
-        return form instanceof PersistentList && ((PersistentList) form).first().equals(ns);
+        if (!(form instanceof PersistentList)) return false;
+        Object first = ((PersistentList) form).first();
+        return null_ns.equals(first) || clojure_core_ns.equals(first);
     }
 
     public static void evaluateNamespaceFormsBefore(String text, String pathname, String filename,

@@ -78,8 +78,8 @@ public class SpecialForm {
             case "var":
                 return "  (var symbol)\n" +
                         "Special Form\n" +
-                        "  The symbol must resolve to a var, and the Var object\n" +
-                        "  itself (not its value) is returned. The reader macro #'x expands to (var x).";
+                        "  The symbol must resolve to a var, and the Var object itself\n" +
+                        "  (not its value) is returned. The reader macro #'x expands to (var x).";
         }
         return null;
     }

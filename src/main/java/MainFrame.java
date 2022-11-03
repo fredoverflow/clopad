@@ -22,11 +22,11 @@ import static java.lang.reflect.Modifier.isStatic;
 public class MainFrame extends JFrame {
     private Editor input;
     private NamespaceExplorer namespaceExplorer;
-    private JPanel up;
 
     private FreditorUI output;
     private HashMap<Symbol, FreditorUI_symbol> infos;
     private JTabbedPane tabs;
+    private final int emptyTabsWidth;
     private JSplitPane split;
 
     private Console console;
@@ -43,19 +43,19 @@ public class MainFrame extends JFrame {
 
         namespaceExplorer = new NamespaceExplorer(this::printHelpFromExplorer);
 
-        up = new JPanel(new BorderLayout());
-        up.add(inputWithLineNumbers, BorderLayout.CENTER);
-        up.add(namespaceExplorer, BorderLayout.EAST);
-
-        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 8);
+        output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 72, 8);
 
         infos = new HashMap<>();
 
         tabs = new JTabbedPane();
+        emptyTabsWidth = tabs.getPreferredSize().width;
         tabs.addTab("output", output);
+        tabs.addTab("ns explorer", namespaceExplorer);
+        printHelp(Clojure.clojure_core_ns, Clojure.sourceFn.invoke(Clojure.clojure_core_ns));
+        tabs.setSelectedIndex(2);
 
-        split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs);
-        split.setResizeWeight(1.0);
+        split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tabs, inputWithLineNumbers);
+        split.setResizeWeight(0.0);
         add(split);
 
         console = new Console(tabs, output, input, input.autosaver.pathname, input.autosaver.filename);
@@ -113,7 +113,7 @@ public class MainFrame extends JFrame {
             }
 
             private PrintFormToWriter selectPrintFormToWriter(KeyEvent event) {
-                return event.isShiftDown() ? Clojure.pprint::invoke : RT::print;
+                return event.isShiftDown() ? RT::print : Clojure.pprint::invoke;
             }
         });
 
@@ -125,9 +125,11 @@ public class MainFrame extends JFrame {
             public void mouseClicked(MouseEvent event) {
                 if (event.getButton() == MouseEvent.BUTTON3) {
                     Component selectedComponent = tabs.getSelectedComponent();
-                    if (selectedComponent == output) {
+                    if (!(selectedComponent instanceof FreditorUI_symbol)) {
                         tabs.removeAll();
                         tabs.addTab("output", output);
+                        tabs.addTab("ns explorer", namespaceExplorer);
+                        tabs.setSelectedComponent(selectedComponent);
                         infos.clear();
                     } else {
                         FreditorUI_symbol selectedSource = (FreditorUI_symbol) selectedComponent;
@@ -141,13 +143,13 @@ public class MainFrame extends JFrame {
 
         split.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, event -> {
             EventQueue.invokeLater(() -> {
-                final int frontHeight = Fronts.front.height;
-                int rest = tabs.getSelectedComponent().getHeight() % frontHeight;
+                final int frontWidth = Fronts.front.width;
+                int rest = (tabs.getWidth() - emptyTabsWidth) % frontWidth;
                 if (rest > 0) {
-                    if ((int) event.getNewValue() < (int) event.getOldValue()) {
-                        rest -= frontHeight;
+                    if ((int) event.getNewValue() > (int) event.getOldValue()) {
+                        rest -= frontWidth;
                     }
-                    split.setDividerLocation(split.getDividerLocation() + rest);
+                    split.setDividerLocation(split.getDividerLocation() - rest);
                 }
             });
         });
@@ -272,7 +274,7 @@ public class MainFrame extends JFrame {
     }
 
     private FreditorUI_symbol newInfo(Symbol symbol) {
-        FreditorUI_symbol info = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 8, symbol);
+        FreditorUI_symbol info = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 72, 8, symbol);
         info.onRightClick = this::printHelpFromHelp;
         tabs.addTab(symbol.getName(), info);
         return info;
@@ -281,7 +283,7 @@ public class MainFrame extends JFrame {
     private void macroexpandFormAtCursor(String text, IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
-                console.print(RT::print, "", formAtCursor, "¤\n");
+                console.print(printFormToWriter, "", formAtCursor, "¤\n");
                 Object expansion = macroexpand.invoke(formAtCursor);
                 printResultValueAndType(printFormToWriter, expansion);
             });
@@ -314,7 +316,7 @@ public class MainFrame extends JFrame {
     private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
-                console.print(RT::print, "", formAtCursor, "\n");
+                console.print(printFormToWriter, "", formAtCursor, "\n");
                 Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
                 printResultValueAndType(printFormToWriter, result);
             });
