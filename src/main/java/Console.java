@@ -43,25 +43,20 @@ public class Console {
             input.autosaver.save();
             body.run();
         } catch (Compiler.CompilerException ex) {
-            printWriter.println();
             Throwable cause = ex.getCause();
-            StackTraceElement[] stackTrace = cause.getStackTrace();
-            StackTraceElement[] userElements = Arrays.stream(stackTrace)
+            StackTraceElement[] fullStackTrace = cause.getStackTrace();
+            StackTraceElement[] userStackTrace = Arrays.stream(fullStackTrace)
                     .filter(element -> input.autosaver.filename.equals(element.getFileName()))
                     .toArray(StackTraceElement[]::new);
-            if (userElements.length > 0) {
-                printWriter.println(cause);
-                for (StackTraceElement element : userElements) {
-                    printWriter.println("\tat " + element);
-                }
+            if (userStackTrace.length > 0) {
+                printStackTrace(cause, userStackTrace);
                 if (setCursor) {
-                    int line = userElements[0].getLineNumber();
+                    int line = userStackTrace[0].getLineNumber();
                     input.setCursorTo(line - 1, 0);
                 }
-                printWriter.println();
-                cause.printStackTrace(printWriter);
+                printStackTrace(cause, fullStackTrace);
             } else {
-                cause.printStackTrace(printWriter);
+                printStackTrace(cause, fullStackTrace);
                 if (setCursor && ex.line > 0) {
                     IPersistentMap data = ex.getData();
                     Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
@@ -71,6 +66,17 @@ public class Console {
         } finally {
             Var.popThreadBindings();
         }
+    }
+
+    private void printStackTrace(Throwable cause, StackTraceElement[] stackTrace) {
+        printWriter.println(cause.getClass().getName());
+        printWriter.println(cause.getLocalizedMessage());
+        for (StackTraceElement element : stackTrace) {
+            // trim stack trace at first Clopad type (default package; unqualified class name)
+            if (Character.isUpperCase(element.getClassName().charAt(0))) break;
+            printWriter.println("\tat " + element);
+        }
+        printWriter.println();
     }
 
     public void print(PrintFormToWriter printFormToWriter, String prefix, Object form, String suffix) {
