@@ -120,17 +120,17 @@ public class Clojure {
     }
 
     private static int skipWhitespace(PushbackReader reader) {
-        int ch = -1;
         try {
+            int ch;
             do {
                 ch = reader.read();
             } while (Character.isWhitespace(ch) || ch == ',');
             if (ch != -1) {
                 reader.unread(ch);
             }
+            return ch;
         } catch (IOException ex) {
             throw Util.sneakyThrow(ex);
         }
-        return ch;
     }
 }
