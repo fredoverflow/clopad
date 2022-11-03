@@ -140,7 +140,7 @@ public class MainFrame extends JFrame {
         });
 
         split.addPropertyChangeListener(JSplitPane.DIVIDER_LOCATION_PROPERTY, event -> {
-            SwingUtilities.invokeLater(() -> {
+            EventQueue.invokeLater(() -> {
                 final int frontHeight = Fronts.front.height;
                 int rest = tabs.getSelectedComponent().getHeight() % frontHeight;
                 if (rest > 0) {
@@ -160,7 +160,7 @@ public class MainFrame extends JFrame {
                 int line = Integer.parseInt(matcher.group(1));
                 int column = Optional.ofNullable(matcher.group(2)).map(Integer::parseInt).orElse(1);
                 input.setCursorTo(line - 1, column - 1);
-                SwingUtilities.invokeLater(input::requestFocusInWindow);
+                EventQueue.invokeLater(input::requestFocusInWindow);
             } else {
                 evaluateNamespaceFormsBeforeCursor(input.getText(), formAtCursor -> {
                     Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
