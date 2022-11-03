@@ -78,11 +78,20 @@ public class Console {
         try {
             stringWriter.append(prefix);
             printFormToWriter.print(form, stringWriter);
+            ensureEmptyLine(stringWriter);
             stringWriter.append(suffix);
         } catch (IOException ex) {
             throw Util.sneakyThrow(ex);
         } finally {
             printWriter.append(stringWriter.toString());
+        }
+    }
+
+    private void ensureEmptyLine(StringWriter stringWriter) {
+        StringBuffer buffer = stringWriter.getBuffer();
+        int length = buffer.length();
+        if (length > 0 && buffer.charAt(length - 1) != '\n') {
+            stringWriter.append('\n');
         }
     }
 }

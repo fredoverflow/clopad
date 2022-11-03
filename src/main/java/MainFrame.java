@@ -281,7 +281,7 @@ public class MainFrame extends JFrame {
     private void macroexpandFormAtCursor(String text, IFn macroexpand, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
-                console.print(RT::print, "¤", formAtCursor, "\n\n");
+                console.print(RT::print, "", formAtCursor, "¤\n");
                 Object expansion = macroexpand.invoke(formAtCursor);
                 printResultValueAndType(printFormToWriter, expansion);
             });
@@ -314,7 +314,7 @@ public class MainFrame extends JFrame {
     private void evaluateFormAtCursor(String text, PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
             evaluateNamespaceFormsBeforeCursor(text, formAtCursor -> {
-                console.print(RT::print, "", formAtCursor, "\n\n");
+                console.print(RT::print, "", formAtCursor, "\n");
                 Object result = Clojure.isNamespaceForm(formAtCursor) ? null : Compiler.eval(formAtCursor, false);
                 printResultValueAndType(printFormToWriter, result);
             });

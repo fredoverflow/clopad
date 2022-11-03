@@ -12,7 +12,7 @@ public class Editor extends FreditorUI {
                 + ";; F5  evaluate    whole program\n"
                 + ";; F11 macroexpand top-level or selected form (CTRL also expands nested macros)\n"
                 + ";; F12 evaluate    top-level or selected form\n"
-                + ";; SHIFT activates pretty-printing\n"
+                + ";; SHIFT with F5/F11/F12 enables pretty-printing\n\n"
                 + "(ns user\n  (:require [clojure.string :as string]))\n\n"
                 + "(defn square [x]\n  (* x x))\n\n"
                 + "(->> (range 1 11)\n  (map square )\n  (string/join \", \" ))\n");
