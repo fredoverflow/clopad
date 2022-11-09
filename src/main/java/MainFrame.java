@@ -130,8 +130,12 @@ public class MainFrame extends JFrame {
             }
         });
 
-        input.onRightClick = this::printHelpInCurrentNamespace;
-        output.onRightClick = this::printHelpInCurrentNamespace;
+        registerRightClickIn(input, event -> {
+            if (event.getClickCount() == 2) {
+                evaluateFormAtCursor(isolateSelectedForm(), event.isShiftDown() ? Clojure.pprint::invoke : RT::print);
+            }
+        }, this::printHelpInCurrentNamespace);
+        registerRightClickIn(output, this::printHelpInCurrentNamespace);
 
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -164,6 +168,35 @@ public class MainFrame extends JFrame {
                 }
             });
         });
+    }
+
+    private void registerRightClickIn(FreditorUI editor, Consumer<MouseEvent> afterSelect, Consumer<String> defaultConsumer) {
+        editor.onRightClick2 = (lexeme, event) -> {
+            switch (lexeme.charAt(0)) {
+                case '(':
+                case '[':
+                case '{':
+                    editor.setCursorTo(editor.cursor() + 1);
+                    // intentional fallthrough
+                case ')':
+                case ']':
+                case '}':
+                case ' ':
+                case '\n':
+                case ',':
+                    editor.selectContainingForm();
+                    afterSelect.accept(event);
+                    break;
+
+                default:
+                    defaultConsumer.accept(lexeme);
+            }
+        };
+    }
+
+    private void registerRightClickIn(FreditorUI editor, Consumer<String> defaultConsumer) {
+        registerRightClickIn(editor, event -> {
+        }, defaultConsumer);
     }
 
     private void printHelpInCurrentNamespace(String lexeme) {
@@ -286,7 +319,7 @@ public class MainFrame extends JFrame {
 
     private FreditorUI_symbol newInfo(Symbol symbol) {
         FreditorUI_symbol info = new FreditorUI_symbol(Flexer.instance, ClojureIndenter.instance, 80, 8, symbol);
-        info.onRightClick = this::printHelpFromHelp;
+        registerRightClickIn(info, this::printHelpFromHelp);
         tabs.addTab(symbol.getName(), info);
         return info;
     }
