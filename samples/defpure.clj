@@ -3,6 +3,14 @@
             [clojure.test :refer [do-report run-tests]]))
 
 
+(defn- filter-stack-trace! [^Throwable throwable]
+  (->> (for [^StackTraceElement element (. throwable getStackTrace)
+             :when (. "clopad.txt" equals (. element getFileName))]
+         element)
+    (into-array StackTraceElement)
+    (. throwable setStackTrace))
+  throwable)
+
 (defn- register-test [v, inputs->output-map, do-report]
   (alter-meta! v assoc :test
     #(doseq [[inputs output] inputs->output-map]
@@ -16,7 +24,7 @@
            (do-report {:type     :error
                        :message  (str "  inputs: " inputs)
                        :expected output
-                       :actual   throwable}))))))
+                       :actual   (filter-stack-trace! throwable)}))))))
 
 (defmacro defpure
   "Defines a pure function, illustrated by an exemplary inputs->output map"
@@ -32,7 +40,7 @@
    [3] 9}
   "squares its input"
   [^Number x]
-  (+ x x))
+  (/ x x))
 
 
 
