@@ -72,7 +72,7 @@ public class Flexer extends freditor.Flexer {
     @Override
     public int pickColorForLexeme(FlexerState previousState, FlexerState endState) {
         Integer color = (previousState == OPENING_PAREN ? afterOpeningParen : lexemeColors).get(endState);
-        return color != null ? color : 0x333333;
+        return color != null ? color : DEFAULT_LEXEME_COLOR;
     }
 
     private static final Map<FlexerState, Integer> lexemeColors;
@@ -80,16 +80,16 @@ public class Flexer extends freditor.Flexer {
 
     static {
         lexemeColors = new HashMap<>();
-        lexemeColors.put(ERROR, 0xff0000);
-        puts(lexemeColors, COMMENT_HEAD, COMMENT_TAIL, 0x999988);
-        puts(lexemeColors, CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0x00a67a);
-        puts(lexemeColors, STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a);
-        puts(lexemeColors, NUMBER_HEAD, NUMBER_TAIL, 0x143dfb);
-        puts(lexemeColors, START.read("false", "nil", "true"), 0x143dfb);
-        puts(lexemeColors, KEYWORD_HEAD, KEYWORD_TAIL, 0x990073);
+        lexemeColors.put(ERROR, 0xe871d0);
+        puts(lexemeColors, COMMENT_HEAD, COMMENT_TAIL, 0x5d995d);
+        puts(lexemeColors, CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0xd6927b);
+        puts(lexemeColors, STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0xd6927b);
+        puts(lexemeColors, NUMBER_HEAD, NUMBER_TAIL, 0xafceab);
+        puts(lexemeColors, START.read("false", "nil", "true"), 0xafceab);
+        puts(lexemeColors, KEYWORD_HEAD, KEYWORD_TAIL, 0x8edcfb);
 
         afterOpeningParen = new HashMap<>(lexemeColors);
-        puts(afterOpeningParen, START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0xcc55ca);
+        puts(afterOpeningParen, START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0x449bd2);
     }
 
     private static <K, V> void puts(Map<K, V> map, K[] keys, V value) {

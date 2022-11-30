@@ -2,6 +2,7 @@ import clojure.lang.ISeq;
 import clojure.lang.Namespace;
 import clojure.lang.RT;
 import clojure.lang.Symbol;
+import freditor.FreditorUI;
 import freditor.Fronts;
 
 import javax.swing.*;
@@ -10,6 +11,8 @@ import java.util.Comparator;
 import java.util.function.BiConsumer;
 
 public class NamespaceExplorer extends JPanel {
+    public static final Color FOREGROUND_COLOR = new Color(Flexer.DEFAULT_LEXEME_COLOR);
+
     private final JComboBox<Namespace> namespaces;
     private final JList<Symbol> names;
     private final JTextField filter;
@@ -22,6 +25,16 @@ public class NamespaceExplorer extends JPanel {
         namespaces.addItemListener(event -> filterSymbols());
 
         names = new JList<>();
+        names.setBackground(FreditorUI.BACKGROUND_COLOR);
+        names.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Component component = super.getListCellRendererComponent(names, value, index, isSelected, cellHasFocus);
+                component.setBackground(FreditorUI.BACKGROUND_COLOR);
+                component.setForeground(FOREGROUND_COLOR);
+                return component;
+            }
+        });
         names.setFont(Fronts.sansSerif);
         names.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         names.addListSelectionListener(event -> {
