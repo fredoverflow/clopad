@@ -28,16 +28,16 @@ public class Flexer extends freditor.Flexer {
     private static final FlexerState NUMBER_TAIL = new FlexerState(".9AFMMNNRRXXafrrxx", THIS);
     private static final FlexerState NUMBER_HEAD = NUMBER_TAIL.head();
 
-    static final FlexerState SYMBOL_TAIL = new FlexerState("!!#'*+-:<?AZ__az||", THIS);
+    static final FlexerState SYMBOL_TAIL = new FlexerState("!!$$''*+-:<?AZ__az||", THIS);
     static final FlexerState SYMBOL_HEAD = SYMBOL_TAIL.head();
 
     private static final FlexerState SIGN = new FlexerStateBuilder()
-            .set("!!#'*+-:<?AZ__az||", SYMBOL_TAIL)
+            .set("!!$$''*+-:<?AZ__az||", SYMBOL_TAIL)
             .set("09", NUMBER_TAIL)
             .build()
             .head();
 
-    static final FlexerState KEYWORD_TAIL = new FlexerState("!!#'*+-:<?AZ__az||", THIS);
+    static final FlexerState KEYWORD_TAIL = new FlexerState("!!$$''*+-:<?AZ__az||", THIS);
     static final FlexerState KEYWORD_HEAD = KEYWORD_TAIL.head();
 
     private static final FlexerState START = new FlexerStateBuilder()
@@ -53,7 +53,7 @@ public class Flexer extends freditor.Flexer {
             .set(';', COMMENT_HEAD)
             .set('\\', CHAR_CONSTANT_HEAD)
             .set('\"', STRING_LITERAL_HEAD)
-            .set("!!#'*+-:<?AZ__az||", SYMBOL_HEAD)
+            .set("!!$$''*+-:<?AZ__az||", SYMBOL_HEAD)
             .set("09", NUMBER_HEAD)
             .set('+', SIGN)
             .set('-', SIGN)
