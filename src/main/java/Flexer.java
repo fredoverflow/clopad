@@ -70,19 +70,19 @@ public class Flexer extends freditor.Flexer {
     @Override
     public int pickColorForLexeme(FlexerState previousState, FlexerState endState) {
         Integer color = (previousState == OPENING_PAREN ? afterOpeningParen : lexemeColors).get(endState);
-        return color != null ? color : 0x333333;
+        return color != null ? color : DEFAULT_LEXEME_COLOR;
     }
 
-    private static final ChampMap<FlexerState, Integer> lexemeColors = ChampMap.of(ERROR, 0xff0000)
-            .put(COMMENT_HEAD, COMMENT_TAIL, 0x999988)
-            .put(CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0x00a67a)
-            .put(STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a)
-            .put(NUMBER_HEAD, NUMBER_TAIL, 0x143dfb)
-            .put(START.read("false", "nil", "true"), 0x143dfb)
-            .put(KEYWORD_HEAD, KEYWORD_TAIL, 0x990073);
+    private static final ChampMap<FlexerState, Integer> lexemeColors = ChampMap.of(ERROR, 0xe871d0)
+            .put(COMMENT_HEAD, COMMENT_TAIL, 0x5d995d)
+            .put(CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0xd6927b)
+            .put(STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0xd6927b)
+            .put(NUMBER_HEAD, NUMBER_TAIL, 0xafceab)
+            .put(START.read("false", "nil", "true"), 0xafceab)
+            .put(KEYWORD_HEAD, KEYWORD_TAIL, 0x8edcfb);
 
     private static final ChampMap<FlexerState, Integer> afterOpeningParen = lexemeColors
-            .put(START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0xcc55ca);
+            .put(START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0x449bd2);
 
     @Override
     public boolean preventInsertion(FlexerState nextState) {
