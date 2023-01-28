@@ -337,7 +337,7 @@ public class MainFrame extends JFrame {
         if (result == null) {
             console.print(printFormToWriter, "", null, "\n" + timestamp() + "\n\n");
         } else {
-            console.print(printFormToWriter, "", result, "\n" + result.getClass() + "\n" + timestamp() + "\n\n");
+            console.print(printFormToWriter, "", result, "\n" + result.getClass().getTypeName() + "\n" + timestamp() + "\n\n");
         }
     }
 
