@@ -52,6 +52,7 @@ public class MainFrame extends JFrame {
         infos = new HashMap<>();
 
         tabs = new JTabbedPane();
+        tabs.setFont(Fronts.sansSerif);
         tabs.addTab("output", output);
 
         split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, up, tabs);
