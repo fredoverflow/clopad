@@ -48,6 +48,7 @@ public class MainFrame extends JFrame {
         infos = new HashMap<>();
 
         tabs = new JTabbedPane();
+        tabs.setFont(Fronts.sansSerif);
         emptyTabsWidth = tabs.getPreferredSize().width;
         tabs.addTab("output", output);
         tabs.addTab("ns explorer", namespaceExplorer);
