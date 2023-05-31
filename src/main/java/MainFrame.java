@@ -2,11 +2,14 @@ import clojure.lang.Compiler;
 import clojure.lang.*;
 import freditor.FreditorUI;
 import freditor.Fronts;
-import freditor.LineNumbers;
+import freditor.TabbedEditors;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.lang.reflect.Modifier;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -20,7 +23,12 @@ import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 
 public class MainFrame extends JFrame {
-    private Editor input;
+    private TabbedEditors tabbedInputs;
+
+    private FreditorUI input() {
+        return tabbedInputs.getSelectedEditor();
+    }
+
     private NamespaceExplorer namespaceExplorer;
     private JPanel up;
 
@@ -31,20 +39,62 @@ public class MainFrame extends JFrame {
 
     private Console console;
 
-    private Pattern userLocation;
-
     public MainFrame() {
-        input = new Editor();
-        JPanel inputWithLineNumbers = new JPanel();
-        inputWithLineNumbers.setLayout(new BoxLayout(inputWithLineNumbers, BoxLayout.X_AXIS));
-        inputWithLineNumbers.add(new LineNumbers(input));
-        inputWithLineNumbers.add(input);
-        input.setComponentToRepaint(inputWithLineNumbers);
+        tabbedInputs = new TabbedEditors("clopad", Flexer.instance, ClojureIndenter.instance, freditor -> {
+            FreditorUI input = new FreditorUI(freditor, 80, 25);
+
+            input.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent event) {
+                    switch (event.getKeyCode()) {
+                        case KeyEvent.VK_F1:
+                            if (event.isAltDown()) {
+                                toggleNamespaceExplorer();
+                            } else {
+                                printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
+                            }
+                            break;
+
+                        case KeyEvent.VK_F5:
+                            evaluateWholeProgram(selectPrintFormToWriter(event));
+                            break;
+
+                        case KeyEvent.VK_F11:
+                            macroexpandFormAtCursor(isolateSelectedForm(), selectMacroexpand(event), selectPrintFormToWriter(event));
+                            break;
+
+                        case KeyEvent.VK_F12:
+                            evaluateFormAtCursor(isolateSelectedForm(), selectPrintFormToWriter(event));
+                            break;
+                    }
+                }
+
+                private IFn selectMacroexpand(KeyEvent event) {
+                    return FreditorUI.isControlRespectivelyCommandDown(event) ? Clojure.macroexpandAll : Clojure.macroexpand;
+                }
+
+                private PrintFormToWriter selectPrintFormToWriter(KeyEvent event) {
+                    return event.isShiftDown() ? Clojure.pprint::invoke : RT::print;
+                }
+            });
+
+            registerRightClickIn(input, event -> {
+                if (event.getClickCount() == 2) {
+                    evaluateFormAtCursor(isolateSelectedForm(), event.isShiftDown() ? Clojure.pprint::invoke : RT::print);
+                }
+            }, this::printHelpInCurrentNamespace);
+
+            return input;
+        });
+
+        if (input().length() == 0) {
+            input().load(helloWorld);
+        }
 
         namespaceExplorer = new NamespaceExplorer(this::printHelpFromExplorer);
 
         up = new JPanel(new BorderLayout());
-        up.add(inputWithLineNumbers, BorderLayout.CENTER);
+        up.add(tabbedInputs.tabs, BorderLayout.CENTER);
         up.add(namespaceExplorer, BorderLayout.EAST);
 
         output = new FreditorUI(Flexer.instance, ClojureIndenter.instance, 80, 8);
@@ -59,7 +109,7 @@ public class MainFrame extends JFrame {
         split.setResizeWeight(1.0);
         add(split);
 
-        console = new Console(tabs, output, input, input.autosaver.pathname, input.autosaver.filename);
+        console = new Console(tabs, output, this::input);
 
         addListeners();
         boringStuff();
@@ -77,16 +127,16 @@ public class MainFrame extends JFrame {
     private static final Pattern NOT_NEWLINE = Pattern.compile("[^\n]");
 
     private String isolateSelectedForm() {
-        String text = input.getText();
-        if (input.selectionIsEmpty()) return text;
+        String text = input().getText();
+        if (input().selectionIsEmpty()) return text;
 
         // For simplicity, assume first form is the namespace form
         String namespaceForm = Clojure.firstForm(text);
         int namespaceEnd = namespaceForm.length();
-        int selectionStart = input.selectionStart();
+        int selectionStart = input().selectionStart();
         if (namespaceEnd <= selectionStart) {
             String betweenNamespaceAndSelection = text.substring(namespaceEnd, selectionStart);
-            String selection = text.substring(selectionStart, input.selectionEnd());
+            String selection = text.substring(selectionStart, input().selectionEnd());
             // The whitespace preserves absolute positions for better error messages
             String whitespace = NOT_NEWLINE.matcher(betweenNamespaceAndSelection).replaceAll(" ");
             return namespaceForm + whitespace + selection;
@@ -96,46 +146,6 @@ public class MainFrame extends JFrame {
     }
 
     private void addListeners() {
-        input.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent event) {
-                switch (event.getKeyCode()) {
-                    case KeyEvent.VK_F1:
-                        if (event.isAltDown()) {
-                            toggleNamespaceExplorer();
-                        } else {
-                            printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
-                        }
-                        break;
-
-                    case KeyEvent.VK_F5:
-                        evaluateWholeProgram(selectPrintFormToWriter(event));
-                        break;
-
-                    case KeyEvent.VK_F11:
-                        macroexpandFormAtCursor(isolateSelectedForm(), selectMacroexpand(event), selectPrintFormToWriter(event));
-                        break;
-
-                    case KeyEvent.VK_F12:
-                        evaluateFormAtCursor(isolateSelectedForm(), selectPrintFormToWriter(event));
-                        break;
-                }
-            }
-
-            private IFn selectMacroexpand(KeyEvent event) {
-                return Editor.isControlRespectivelyCommandDown(event) ? Clojure.macroexpandAll : Clojure.macroexpand;
-            }
-
-            private PrintFormToWriter selectPrintFormToWriter(KeyEvent event) {
-                return event.isShiftDown() ? Clojure.pprint::invoke : RT::print;
-            }
-        });
-
-        registerRightClickIn(input, event -> {
-            if (event.getClickCount() == 2) {
-                evaluateFormAtCursor(isolateSelectedForm(), event.isShiftDown() ? Clojure.pprint::invoke : RT::print);
-            }
-        }, this::printHelpInCurrentNamespace);
         registerRightClickIn(output, this::printHelpInCurrentNamespace);
 
         tabs.addMouseListener(new MouseAdapter() {
@@ -152,7 +162,7 @@ public class MainFrame extends JFrame {
                         tabs.remove(selectedSource);
                         infos.remove(selectedSource.symbol);
                     }
-                    input.requestFocusInWindow();
+                    input().requestFocusInWindow();
                 }
             }
         });
@@ -202,14 +212,15 @@ public class MainFrame extends JFrame {
 
     private void printHelpInCurrentNamespace(String lexeme) {
         console.run(false, () -> {
+            Pattern userLocation = Pattern.compile(".*\\Q" + input().getFile().getFileName() + "\\E:(\\d+)(?::(\\d+))?");
             Matcher matcher = userLocation.matcher(lexeme);
             if (matcher.matches()) {
                 int line = Integer.parseInt(matcher.group(1));
                 int column = Optional.ofNullable(matcher.group(2)).map(Integer::parseInt).orElse(1);
-                input.setCursorTo(line - 1, column - 1);
-                EventQueue.invokeLater(input::requestFocusInWindow);
+                input().setCursorTo(line - 1, column - 1);
+                EventQueue.invokeLater(input()::requestFocusInWindow);
             } else {
-                evaluateNamespaceFormsBeforeCursor(input.getText(), formAtCursor -> {
+                evaluateNamespaceFormsBeforeCursor(input().getText(), formAtCursor -> {
                     Namespace namespace = (Namespace) RT.CURRENT_NS.deref();
                     printPotentiallySpecialHelp(namespace, Symbol.create(lexeme));
                 });
@@ -242,7 +253,7 @@ public class MainFrame extends JFrame {
 
     public void printHelpFromExplorer(Namespace namespace, Symbol symbol) {
         console.run(false, () -> printHelp(namespace, symbol));
-        input.requestFocusInWindow();
+        input().requestFocusInWindow();
     }
 
     private void printHelp(Namespace namespace, Symbol symbol) {
@@ -314,7 +325,7 @@ public class MainFrame extends JFrame {
 
     private void printHelp(Symbol resolved, Object help) {
         FreditorUI_symbol info = infos.computeIfAbsent(resolved, this::newInfo);
-        info.loadFromString(help.toString());
+        info.load(help.toString());
         tabs.setSelectedComponent(info);
     }
 
@@ -337,7 +348,7 @@ public class MainFrame extends JFrame {
 
     private void evaluateWholeProgram(PrintFormToWriter printFormToWriter) {
         console.run(true, () -> {
-            Clojure.loadFromScratch(input.getText(), input.autosaver.pathname, input.autosaver.filename, result -> {
+            Clojure.loadFromScratch(input().getText(), input().getFile(), result -> {
                 namespaceExplorer.updateNamespaces();
                 printResultValueAndType(printFormToWriter, result);
             });
@@ -369,22 +380,27 @@ public class MainFrame extends JFrame {
     }
 
     private void evaluateNamespaceFormsBeforeCursor(String text, Consumer<Object> formContinuation) {
-        Clojure.evaluateNamespaceFormsBefore(text, input.autosaver.pathname, input.autosaver.filename,
-                1 + input.row(), 1 + input.column(), namespaceExplorer::updateNamespaces, formContinuation);
+        Clojure.evaluateNamespaceFormsBefore(text, input().getFile(),
+                input().row() + 1, input().column() + 1, namespaceExplorer::updateNamespaces, formContinuation);
     }
 
     private void boringStuff() {
-        userLocation = Pattern.compile(".*" + input.autosaver.filename + ":(\\d+)(?::(\\d+))?");
-        setTitle(input.autosaver.pathname);
+        setTitle(input().getFile().getParent().toString());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent event) {
-                input.autosaver.save();
-            }
-        });
+        tabbedInputs.saveOnExit(this);
         pack();
         setVisible(true);
-        input.requestFocusInWindow();
+        input().requestFocusInWindow();
     }
+
+    private static final String helloWorld = ""
+            + ";; F1     show source or doc-string (same as right-click)\n"
+            + ";; ALT F1 toggle namespace explorer\n"
+            + ";; F5     evaluate    whole program\n"
+            + ";; F11    macroexpand top-level or selected form (CTRL also expands nested macros)\n"
+            + ";; F12    evaluate    top-level or selected form\n"
+            + ";; SHIFT  with F5/F11/F12 enables pretty-printing\n\n"
+            + "(ns user\n  (:require [clojure.string :as string]))\n\n"
+            + "(defn square [x]\n  (* x x))\n\n"
+            + "(->> (range 1 11)\n  (map square )\n  (string/join \", \" ))\n";
 }

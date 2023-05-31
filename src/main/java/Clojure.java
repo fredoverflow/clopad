@@ -4,6 +4,7 @@ import clojure.lang.*;
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.StringReader;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import static clojure.lang.Compiler.*;
@@ -45,10 +46,10 @@ public class Clojure {
         return reader.getString();
     }
 
-    public static void loadFromScratch(String text, String pathname, String filename,
+    public static void loadFromScratch(String text, Path file,
                                        Consumer<Object> resultContinuation) {
         Object[] result = new Object[1];
-        feedFormsBefore(text, pathname, filename, Integer.MAX_VALUE, Integer.MAX_VALUE, form -> {
+        feedFormsBefore(text, file, Integer.MAX_VALUE, Integer.MAX_VALUE, form -> {
             if (isNamespaceForm(form)) {
                 Namespace.remove((Symbol) ((PersistentList) form).next().first());
             }
@@ -62,11 +63,11 @@ public class Clojure {
         return form instanceof PersistentList && ((PersistentList) form).first().equals(ns);
     }
 
-    public static void evaluateNamespaceFormsBefore(String text, String pathname, String filename,
+    public static void evaluateNamespaceFormsBefore(String text, Path file,
                                                     int row, int column,
                                                     Runnable updateNamespaces,
                                                     Consumer<Object> formContinuation) {
-        feedFormsBefore(text, pathname, filename, row, column, form -> {
+        feedFormsBefore(text, file, row, column, form -> {
             if (isNamespaceForm(form)) {
                 Compiler.eval(form, false);
                 updateNamespaces.run();
@@ -74,15 +75,15 @@ public class Clojure {
         }, formContinuation);
     }
 
-    private static void feedFormsBefore(String text, String pathname, String filename,
+    private static void feedFormsBefore(String text, Path file,
                                         int row, int column,
                                         Consumer<Object> formConsumer,
                                         Consumer<Object> formContinuation) {
         LineNumberingPushbackReader reader = new LineNumberingPushbackReader(new StringReader(text));
 
         Var.pushThreadBindings(RT.mapUniqueKeys(LOADER, RT.makeClassLoader(),
-                SOURCE_PATH, pathname,
-                SOURCE, filename,
+                SOURCE_PATH, file.toString(),
+                SOURCE, file.getFileName().toString(),
                 METHOD, null,
                 LOCAL_ENV, null,
                 LOOP_LOCALS, null,
@@ -105,11 +106,11 @@ public class Clojure {
             }
             formContinuation.accept(form);
         } catch (LispReader.ReaderException ex) {
-            throw new CompilerException(pathname, ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
+            throw new CompilerException(file.toString(), ex.line, ex.column, null, CompilerException.PHASE_READ, ex.getCause());
         } catch (CompilerException ex) {
             throw ex;
         } catch (Throwable ex) {
-            throw new CompilerException(pathname, (Integer) LINE.deref(), (Integer) COLUMN.deref(), ex);
+            throw new CompilerException(file.toString(), (Integer) LINE.deref(), (Integer) COLUMN.deref(), ex);
         } finally {
             Var.popThreadBindings();
         }
