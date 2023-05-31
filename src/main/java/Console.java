@@ -8,18 +8,19 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 public class Console {
     private static final int PRINT_LENGTH = 100;
 
     private final JTabbedPane tabs;
     private final FreditorUI output;
-    private final Editor input;
+    private final Supplier<FreditorUI> input;
 
     private final FreditorWriter freditorWriter;
     public final PrintWriter printWriter;
 
-    public Console(JTabbedPane tabs, FreditorUI output, Editor input, String sourcePath, String sourceName) {
+    public Console(JTabbedPane tabs, FreditorUI output, Supplier<FreditorUI> input) {
         this.tabs = tabs;
         this.output = output;
         this.input = input;
@@ -27,8 +28,8 @@ public class Console {
         freditorWriter = new FreditorWriter(output);
         printWriter = new PrintWriter(freditorWriter);
 
-        Compiler.SOURCE_PATH.bindRoot(sourcePath);
-        Compiler.SOURCE.bindRoot(sourceName);
+        Compiler.SOURCE_PATH.bindRoot(input.get().getFile().toString());
+        Compiler.SOURCE.bindRoot(input.get().getFile().getFileName().toString());
         RT.OUT.bindRoot(printWriter);
         RT.ERR.bindRoot(printWriter);
         Clojure.printLength.bindRoot(PRINT_LENGTH);
@@ -45,19 +46,19 @@ public class Console {
         };
         Var.pushThreadBindings(RT.map(RT.CURRENT_NS, RT.CURRENT_NS.deref()));
         try {
-            input.autosaver.save();
+            input.get().saveWithBackup();
             body.run();
         } catch (Compiler.CompilerException ex) {
             Throwable cause = ex.getCause();
             StackTraceElement[] fullStackTrace = cause.getStackTrace();
             StackTraceElement[] userStackTrace = Arrays.stream(fullStackTrace)
-                    .filter(element -> input.autosaver.filename.equals(element.getFileName()))
+                    .filter(element -> input.get().getFile().getFileName().toString().equals(element.getFileName()))
                     .toArray(StackTraceElement[]::new);
             if (userStackTrace.length > 0) {
                 printStackTrace(cause, userStackTrace);
                 if (setCursor) {
                     int line = userStackTrace[0].getLineNumber();
-                    input.setCursorTo(line - 1, 0);
+                    input.get().setCursorTo(line - 1, 0);
                 }
                 printStackTrace(cause, fullStackTrace);
             } else {
@@ -65,7 +66,7 @@ public class Console {
                 if (setCursor && ex.line > 0) {
                     IPersistentMap data = ex.getData();
                     Integer column = (Integer) data.valAt(Compiler.CompilerException.ERR_COLUMN);
-                    input.setCursorTo(ex.line - 1, column - 1);
+                    input.get().setCursorTo(ex.line - 1, column - 1);
                 }
             }
         } finally {
