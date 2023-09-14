@@ -2,6 +2,7 @@ import clojure.lang.Compiler;
 import clojure.lang.*;
 import freditor.FreditorUI;
 import freditor.Fronts;
+import freditor.Release;
 import freditor.TabbedEditors;
 
 import javax.swing.*;
@@ -375,7 +376,7 @@ public class MainFrame extends JFrame {
     }
 
     private void boringStuff() {
-        setTitle(input().getFile().getParent().toString());
+        setTitle("clopad version " + Release.compilationDate(MainFrame.class) + " @ " + input().getFile().getParent());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         tabbedInputs.saveOnExit(this);
         pack();
