@@ -213,7 +213,7 @@ public class MainFrame extends JFrame {
 
     private void printHelpInCurrentNamespace(String lexeme) {
         console.run(false, () -> {
-            Pattern userLocation = Pattern.compile(".*\\Q" + input().getFile().getFileName() + "\\E:(\\d+)(?::(\\d+))?");
+            Pattern userLocation = Pattern.compile(".*(?:\\Q" + input().getFile().getFileName() + "\\E)?:(\\d+)(?::(\\d+))?");
             Matcher matcher = userLocation.matcher(lexeme);
             if (matcher.matches()) {
                 int line = Integer.parseInt(matcher.group(1));
