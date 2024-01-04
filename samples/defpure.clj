@@ -3,9 +3,10 @@
             [clojure.test :refer [do-report run-tests]]))
 
 
+
 (defn- filter-stack-trace! [^Throwable throwable]
   (->> (for [^StackTraceElement element (. throwable getStackTrace)
-             :when (. "clopad.txt" equals (. element getFileName))]
+             :when (. *source-path* equals (. element getFileName))]
          element)
     (into-array StackTraceElement)
     (. throwable setStackTrace))
@@ -32,6 +33,7 @@
   `(do
      (defn ~name ~@rest)
      (register-test (var ~name) ~inputs->output-map #(do-report %))))
+
 
 
 (defpure square
