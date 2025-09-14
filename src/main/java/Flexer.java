@@ -1,6 +1,8 @@
 import freditor.FlexerState;
 import freditor.FlexerStateBuilder;
-import freditor.persistent.ChampMap;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static freditor.FlexerState.EMPTY;
 import static freditor.FlexerState.THIS;
@@ -73,16 +75,40 @@ public class Flexer extends freditor.Flexer {
         return color != null ? color : 0x333333;
     }
 
-    private static final ChampMap<FlexerState, Integer> lexemeColors = ChampMap.of(ERROR, 0xff0000)
-            .put(COMMENT_HEAD, COMMENT_TAIL, 0x999988)
-            .put(CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0x00a67a)
-            .put(STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a)
-            .put(NUMBER_HEAD, NUMBER_TAIL, 0x143dfb)
-            .put(START.read("false", "nil", "true"), 0x143dfb)
-            .put(KEYWORD_HEAD, KEYWORD_TAIL, 0x990073);
+    private static final Map<FlexerState, Integer> lexemeColors;
+    private static final Map<FlexerState, Integer> afterOpeningParen;
 
-    private static final ChampMap<FlexerState, Integer> afterOpeningParen = lexemeColors
-            .put(START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0xcc55ca);
+    static {
+        lexemeColors = new HashMap<>();
+        lexemeColors.put(ERROR, 0xff0000);
+        puts(lexemeColors, COMMENT_HEAD, COMMENT_TAIL, 0x999988);
+        puts(lexemeColors, CHAR_CONSTANT_HEAD, CHAR_CONSTANT_TAIL, 0x00a67a);
+        puts(lexemeColors, STRING_LITERAL_HEAD, STRING_LITERAL_TAIL, STRING_LITERAL_ESCAPE, STRING_LITERAL_END, 0x00a67a);
+        puts(lexemeColors, NUMBER_HEAD, NUMBER_TAIL, 0x143dfb);
+        puts(lexemeColors, START.read("false", "nil", "true"), 0x143dfb);
+        puts(lexemeColors, KEYWORD_HEAD, KEYWORD_TAIL, 0x990073);
+
+        afterOpeningParen = new HashMap<>(lexemeColors);
+        puts(afterOpeningParen, START.read("a", "aa", "-", "f", "fa", "fal", "fals", "n", "ni", "t", "tr", "tru"), 0xcc55ca);
+    }
+
+    private static <K, V> void puts(Map<K, V> map, K[] keys, V value) {
+        for (K key : keys) {
+            map.put(key, value);
+        }
+    }
+
+    private static <K, V> void puts(Map<K, V> map, K k1, K k2, V value) {
+        map.put(k1, value);
+        map.put(k2, value);
+    }
+
+    private static <K, V> void puts(Map<K, V> map, K k1, K k2, K k3, K k4, V value) {
+        map.put(k1, value);
+        map.put(k2, value);
+        map.put(k3, value);
+        map.put(k4, value);
+    }
 
     @Override
     public boolean preventInsertion(FlexerState nextState) {
