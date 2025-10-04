@@ -1,7 +1,7 @@
 import freditor.Freditor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class ClojureIndenterTest {
     private static Freditor text(String s) {
