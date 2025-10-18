@@ -49,7 +49,7 @@ public class MainFrame extends JFrame {
                 public void keyPressed(KeyEvent event) {
                     switch (event.getKeyCode()) {
                         case KeyEvent.VK_F1:
-                            printHelpInCurrentNamespace(input().symbolNearCursor(Flexer.SYMBOL_TAIL));
+                            printHelpInCurrentNamespace(input().symbolNearCursor(Flexer.SYMBOL_HEAD, Flexer.SYMBOL_TAIL));
                             break;
 
                         case KeyEvent.VK_F5:
