@@ -52,7 +52,7 @@ public class MainFrame extends JFrame {
                             if (event.isAltDown()) {
                                 toggleNamespaceExplorer();
                             } else {
-                                printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_TAIL));
+                                printHelpInCurrentNamespace(input.symbolNearCursor(Flexer.SYMBOL_HEAD, Flexer.SYMBOL_TAIL));
                             }
                             break;
 
